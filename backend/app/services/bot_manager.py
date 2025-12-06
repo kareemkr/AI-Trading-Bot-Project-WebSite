@@ -1,51 +1,72 @@
 import threading
-import time
 from datetime import datetime
+
 
 class BotManager:
     def __init__(self):
         self.thread = None
         self.running = False
         self.logs = []
+        self.engine = None  # <-- NEW
 
+    # -------------------------
+    # Logging
+    # -------------------------
     def log(self, msg: str):
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         entry = f"[{timestamp}] {msg}"
         print(entry)
         self.logs.append(entry)
-
-        # keep only last 500 logs
         self.logs = self.logs[-500:]
 
-    def start_bot(self, bot_function):
+    # -------------------------
+    # Set trading engine
+    # -------------------------
+    def set_engine(self, engine):
+        self.engine = engine
+
+    # -------------------------
+    # Start bot engine
+    # -------------------------
+    def start_bot(self):
         if self.running:
             return "Bot already running."
+
+        if self.engine is None:
+            return "Engine not configured."
 
         self.running = True
 
         def run():
-            self.log("Bot started.")
             try:
-                bot_function(self)
+                self.engine.run()
             except Exception as e:
-                self.log(f"BOT ERROR: {e}")
+                self.log(f"ENGINE ERROR: {e}")
             finally:
                 self.running = False
                 self.log("Bot stopped.")
 
         self.thread = threading.Thread(target=run, daemon=True)
         self.thread.start()
+
         return "Bot started."
 
+    # -------------------------
+    # Stop bot engine
+    # -------------------------
     def stop_bot(self):
+        if self.engine:
+            self.engine.stop()
         self.running = False
-        return "Bot stop signal sent."
+        return "Stop signal sent."
 
+    # -------------------------
+    # Status + Logs
+    # -------------------------
     def get_status(self):
-        return {
-            "running": self.running,
-            "log_count": len(self.logs)
-        }
+        return {"running": self.running}
 
     def get_logs(self):
         return self.logs
+bot_manager = BotManager()
+

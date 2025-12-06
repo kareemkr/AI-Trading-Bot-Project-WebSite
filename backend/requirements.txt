@@ -3,3 +3,11 @@ uvicorn
 python-dotenv
 pydantic
 requests
+pymongo
+redis
+APScheduler
+python-binance
+pandas
+numpy
+scikit-learn
+ta

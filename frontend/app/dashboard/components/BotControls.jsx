@@ -30,10 +30,15 @@ export default function BotControls() {
 
   return (
     <div style={{ marginTop: 20 }}>
-      <button onClick={start} disabled={loading}>
+      <button type="button" onClick={start} disabled={loading}>
         Start Bot
       </button>
-      <button onClick={stop} disabled={loading} style={{ marginLeft: 10 }}>
+      <button
+        type="button"
+        onClick={stop}
+        disabled={loading}
+        style={{ marginLeft: 10 }}
+      >
         Stop Bot
       </button>
     </div>
