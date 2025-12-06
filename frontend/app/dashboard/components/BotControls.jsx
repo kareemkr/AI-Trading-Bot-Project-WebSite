@@ -1,20 +1,39 @@
 "use client";
 
+import { useState } from "react";
 import axios from "axios";
 
 export default function BotControls() {
+  const [loading, setLoading] = useState(false);
+
   const start = async () => {
-    await axios.post("http://localhost:8000/bot/start");
+    setLoading(true);
+    try {
+      await axios.post("http://localhost:8000/bot/start");
+    } catch (error) {
+      console.error("Failed to start bot:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const stop = async () => {
-    await axios.post("http://localhost:8000/bot/stop");
+    setLoading(true);
+    try {
+      await axios.post("http://localhost:8000/bot/stop");
+    } catch (error) {
+      console.error("Failed to stop bot:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div style={{ marginTop: 20 }}>
-      <button onClick={start}>Start Bot</button>
-      <button onClick={stop} style={{ marginLeft: 10 }}>
+      <button onClick={start} disabled={loading}>
+        Start Bot
+      </button>
+      <button onClick={stop} disabled={loading} style={{ marginLeft: 10 }}>
         Stop Bot
       </button>
     </div>

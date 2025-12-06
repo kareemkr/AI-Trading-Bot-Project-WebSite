@@ -1,7 +1,10 @@
 from fastapi import APIRouter
 from app.services.bot_manager import BotManager
-from app.main import bot_manager
 from app.services.trading_bot import run_trading_bot
+from app.services.bot_manager import BotManager
+
+bot_manager = BotManager()  # create one global instance
+
 
 router = APIRouter(prefix="/bot", tags=["bot"])
 

@@ -8,10 +8,17 @@ export default function StatusCard() {
 
   useEffect(() => {
     async function load() {
-      const res = await axios.get("http://localhost:8000/bot/status");
-      setStatus(res.data.running ? "Running" : "Stopped");
+      try {
+        const res = await axios.get("http://localhost:8000/bot/status");
+        setStatus(res.data.running ? "Running" : "Stopped");
+      } catch (error) {
+        setStatus("Error");
+      }
     }
+    
     load();
+    const interval = setInterval(load, 2000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
