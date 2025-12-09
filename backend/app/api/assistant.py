@@ -3,8 +3,9 @@ from pydantic import BaseModel
 from huggingface_hub import InferenceClient
 
 router = APIRouter(prefix="/assistant", tags=["Assistant"])
+import os
+HF_TOKEN = os.getenv("HF_TOKEN")
 
-HF_TOKEN = "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"
 
 # This model fully supports chat_completion with no provider parameter
 MODEL_NAME = "meta-llama/Llama-3.2-3B-Instruct"
