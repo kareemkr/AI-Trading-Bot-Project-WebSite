@@ -1,14 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from app.api.auth import router as auth_router
 from app.routes import auth, bot, status
 from app.services.bot_manager import bot_manager
 from app.trading.engine import TradingEngine
 from app.trading.binance_client import BinanceClient
 
+# NEW:
+from app.api.assistant import router as assistant_router
 
 app = FastAPI(title="AI Trading Bot Backend", version="1.0")
-
+app.include_router(auth_router)
 # Allow frontend access
 app.add_middleware(
     CORSMiddleware,
@@ -18,6 +20,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Register AI Assistant API
+app.include_router(assistant_router)
 
 # --------------------------------------
 # Configure Engine + Inject into Manager
@@ -25,17 +29,17 @@ app.add_middleware(
 try:
     client = BinanceClient(testnet=True)
     print("[INFO] Binance client initialized (testnet mode)")
-    
-    # Test public client (market data)
+
     test_data = client.fetch_ohlcv("BTCUSDT", limit=1)
     if test_data:
         print("[INFO] ✅ Public market data connection working")
     else:
         print("[WARNING] ⚠️ Public market data connection failed")
-    
+
     engine = TradingEngine(client, bot_manager)
     bot_manager.set_engine(engine)
     print("[INFO] ✅ Trading engine configured and ready")
+
 except Exception as e:
     print(f"[ERROR] Failed to initialize trading components: {e}")
     import traceback
@@ -43,7 +47,7 @@ except Exception as e:
 
 
 # --------------------------------------
-# Routes
+# ROUTES
 # --------------------------------------
 app.include_router(auth.router)
 app.include_router(bot.router)

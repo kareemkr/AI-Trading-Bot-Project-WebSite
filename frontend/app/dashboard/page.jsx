@@ -12,3 +12,15 @@ export default function Dashboard() {
     </div>
   );
 }
+"use client";
+
+import { useEffect } from "react";
+
+export default function DashboardPage() {
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/signin";
+  }, []);
+
+  return <div className="p-8">Welcome to your dashboard.</div>;
+}

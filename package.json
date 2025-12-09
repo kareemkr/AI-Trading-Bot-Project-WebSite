@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@tanstack/react-virtual": "^3.13.13",
+    "ai": "^5.0.108",
+    "framer-motion": "^12.23.25",
+    "swr": "^2.3.7"
+  }
+}
