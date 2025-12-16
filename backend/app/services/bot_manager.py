@@ -28,7 +28,10 @@ class BotManager:
     # -------------------------
     # Start bot engine
     # -------------------------
-    def start_bot(self):
+    # -------------------------
+    # Start bot engine
+    # -------------------------
+    def start_bot(self, api_key: str = None, api_secret: str = None, leverage: int = 1):
         if self.running:
             return "Bot already running."
 
@@ -39,7 +42,7 @@ class BotManager:
 
         def run():
             try:
-                self.engine.run()
+                self.engine.run(api_key, api_secret, leverage)
             except Exception as e:
                 self.log(f"ENGINE ERROR: {e}")
             finally:

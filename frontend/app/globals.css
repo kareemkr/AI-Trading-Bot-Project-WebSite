@@ -106,7 +106,67 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* === FIX: Sidebar background + border classes === */
+.bg-sidebar {
+  background-color: var(--sidebar);
+}
+
+.border-sidebar-border {
+  border-color: var(--sidebar-border);
+}
+
+.text-sidebar-foreground {
+  color: var(--sidebar-foreground);
+}
+
+.bg-sidebar-accent {
+  background-color: var(--sidebar-accent);
+}
+
+.text-sidebar-accent-foreground {
+  color: var(--sidebar-accent-foreground);
+}
+.backdrop-blur-sm {
+  backdrop-filter: blur(6px);
+}
+@keyframes fadeIn {
+  from { opacity: 0 }
+  to { opacity: 1 }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1 }
+  to { opacity: 0 }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes scaleOut {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  to { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+}
+
+[data-state="open"].animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+[data-state="closed"].animate-fadeOut {
+  animation: fadeOut 0.2s ease-in;
+}
+
+[data-state="open"].animate-scaleIn {
+  animation: scaleIn 0.25s ease-out;
+}
+
+[data-state="closed"].animate-scaleOut {
+  animation: scaleOut 0.25s ease-in;
 }
