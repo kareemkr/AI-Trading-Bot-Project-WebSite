@@ -9,6 +9,18 @@ from binance.client import Client
 from binance.exceptions import BinanceAPIException
 from sklearn.ensemble import GradientBoostingClassifier
 import os
+import requests
+from app.services.news_service import news_ai
+from app.services.telegram_service import telegram_ai
+
+def send_telegram_msg(token, chat_id, message):
+    if not token or not chat_id:
+        return
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    try:
+        requests.post(url, json={"chat_id": chat_id, "text": message}, timeout=5)
+    except Exception as e:
+        print(f"Telegram error: {e}")
 
 # CONFIG
 CONFIG = {
@@ -38,6 +50,8 @@ class RealTradingBot:
     def __init__(self):
         self.running = False
         self.client = None
+        self.public_client = Client("", "") # For public data
+        self.is_virtual = False
         self.model = None
         self.feature_cols = [
             "open", "high", "low", "close", "volume",
@@ -65,10 +79,19 @@ class RealTradingBot:
         secret = api_secret or os.getenv("BINANCE_API_SECRET")
 
         if not key or not secret:
-            raise ValueError("Missing BINANCE_API_KEY or BINANCE_API_SECRET")
+            self.log("⚠️ No Binance keys provided. Entering SHADOW MODE (Signal Only).")
+            self.is_virtual = True
+            self.client = self.public_client
+            return
             
-        self.client = Client(key, secret)
-        self.log("Connected to Binance Futures")
+        try:
+            self.client = Client(key, secret)
+            self.is_virtual = False
+            self.log("✅ Securely connected to Binance Protocol.")
+        except Exception as e:
+            self.log(f"❌ Connection failed: {e}. Falling back to SHADOW MODE.")
+            self.is_virtual = True
+            self.client = self.public_client
 
     def fetch_ohlcv(self, symbol, interval, limit):
         try:
@@ -87,6 +110,61 @@ class RealTradingBot:
             return df
         except Exception as e:
             self.log(f"Error fetching data for {symbol}: {e}")
+
+    def get_account_info(self):
+        """Fetches real balances and account health from Binance."""
+        if self.is_virtual:
+            return {
+                "equity": 50000.0,
+                "unrealized_pnl": 0.0,
+                "total_wallet_balance": 50000.0,
+                "available_balance": 50000.0,
+                "mode": "SHADOW"
+            }
+        
+        if not self.client:
+            return None
+        try:
+            # Futures Account Balance
+            balances = self.client.futures_account_balance()
+            usdt_balance = next((b for b in balances if b['asset'] == 'USDT'), None)
+            
+            # Futures Account Details for PNL
+            acc_info = self.client.futures_account()
+            
+            equity = float(usdt_balance['balance']) if usdt_balance else 0.0
+            unrealized_pnl = float(acc_info['totalUnrealizedProfit'])
+            
+            return {
+                "equity": equity,
+                "unrealized_pnl": unrealized_pnl,
+                "total_wallet_balance": float(acc_info['totalWalletBalance']),
+                "available_balance": float(acc_info['availableBalance'])
+            }
+        except Exception as e:
+            self.log(f"Error fetching account info: {e}")
+            return None
+
+    def get_trade_history(self, limit=10):
+        """Fetches actual recent trade executions."""
+        if not self.client:
+            return []
+        try:
+            # Get list of recent trades for the account
+            trades = self.client.futures_account_trades(limit=limit)
+            formatted_trades = []
+            for t in trades:
+                formatted_trades.append({
+                    "symbol": t['symbol'],
+                    "type": "SELL" if t['side'] == 'SELL' else "BUY",
+                    "price": f"${float(t['price']):,.2f}",
+                    "pnl": f"{float(t['realizedPnl']):+.2f}",
+                    "time": datetime.fromtimestamp(t['time']/1000).strftime('%H:%M:%S')
+                })
+            return formatted_trades
+        except Exception as e:
+            self.log(f"Error fetching trade history: {e}")
+            return []
             return None
 
     def add_indicators(self, df):
@@ -148,9 +226,12 @@ class RealTradingBot:
         ranked = sorted(candidates, key=lambda x: x[1], reverse=True)[:SCANNER_CONFIG["top_n_symbols"]]
         return [x[0] for x in ranked]
 
-    def compute_signal(self, symbol):
+    async def compute_signal(self, symbol, use_news_ai=False):
+        self.log(f"🔍 Analyzing {symbol} for patterns...")
         df = self.fetch_ohlcv(symbol, SCANNER_CONFIG["interval"], 300)
-        if df is None or len(df) < 50: return None
+        if df is None or len(df) < 50: 
+            self.log(f"⚠️ Insufficient data for {symbol}")
+            return None
         
         df = self.add_indicators(df)
         if df.empty: return None
@@ -159,83 +240,202 @@ class RealTradingBot:
         X_live = last_row[self.feature_cols].values
         
         prob = self.model.predict_proba(X_live)[0]
-        # Classes might not be [-1, 0, 1] always if not all labels existed in train
-        # Safe mapping
         classes = self.model.classes_
         p_long = prob[list(classes).index(1)] if 1 in classes else 0
         p_short = prob[list(classes).index(-1)] if -1 in classes else 0
         
-        score = p_long - p_short
+        # SYNERGY ENGINE: TA + News + TIME
+        ta_score = p_long - p_short
+        news_multiplier = 1.0
+        time_multiplier = 1.0
+        logic_gate = "NEUTRAL"
+        
+        # Determine Session/Time Context
+        time_context = await news_ai.check_trading_window()
+        
+        # Apply Session-Native Multipliers
+        if time_context in ["NY_INSTITUTIONAL_PEAK", "LONDON_LIQUIDITY_SURGE"]:
+            time_multiplier = 1.25 # Peak conviction
+        elif time_context == "MONDAY_OPEN_GAP_RISK":
+            time_multiplier = 0.3 # Extreme caution during Monday resets
+        elif time_context == "WEEKEND_LOW_LIQUIDITY":
+            time_multiplier = 0.5 # Neutralize weekend washouts
+        elif time_context == "DAILY_CLOSE_VOLATILITY":
+            time_multiplier = 0.8 # Respect the UTC 00:00 volatility spike
+
+        # --- CRYPTO-NATIVE: BTC BETA CHECK ---
+        # "Don't fight the King." If BTC is bearish, altcoin longs are traps.
+        if symbol != "BTCUSDT":
+            # Simple mock of BTC sentiment for current logic flow
+            btc_is_safe = True 
+            # In production: btc_is_safe = (await self.check_btc_trend())
+            if not btc_is_safe:
+                time_multiplier *= 0.2 # Kill conviction if BTC is dumping
+            
+        if use_news_ai:
+            news_signal = news_ai.get_decision(symbol.replace("USDT",""))
+            sentiment = news_ai.sentiment_score
+            sentiment_pct = round(sentiment * 100, 1)
+            
+            # Strict Convergence Strategy
+            if news_signal == "BULLISH":
+                if ta_score > 0.05: # TA agrees
+                    news_multiplier = 1.5
+                    logic_gate = "SYNERGY_BULLISH"
+                elif ta_score < -0.05: # Conflict!
+                    news_multiplier = 0.1 # Near-total suppression
+                    logic_gate = "NEURAL_CONFLICT"
+            elif news_signal == "BEARISH":
+                if ta_score < -0.05: # TA agrees
+                    news_multiplier = 1.5
+                    logic_gate = "SYNERGY_BEARISH"
+                elif ta_score > 0.05: # Conflict!
+                    news_multiplier = 0.1
+                    logic_gate = "NEURAL_CONFLICT"
+                    
+            self.log(f"🧠 Neural Analysis: {logic_gate} | Sentiment: {sentiment_pct}% | Session: {time_context}")
+        
+        final_score = ta_score * news_multiplier * time_multiplier
         price = float(last_row["close"].iloc[0])
         atr = float(last_row["atr_14"].iloc[0])
         
+        sig_type = "LONG" if final_score > 0.12 else ("SHORT" if final_score < -0.12 else "NEUTRAL")
+        
+        # Add sentiment info to log
+        s_info = f" | News: {sentiment_pct}%" if use_news_ai else ""
+        self.log(f"📊 Signal Matrix: {symbol} | Final: {final_score:.3f}{s_info} | Sig: {sig_type}")
+        
         return {
             "symbol": symbol,
-            "score": score,
+            "score": final_score,
+            "ta_score": ta_score,
+            "news_multiplier": news_multiplier,
+            "logic_gate": logic_gate,
             "price": price,
             "atr": atr,
-            "signal": "LONG" if score > 0.07 else ("SHORT" if score < -0.07 else "NEUTRAL")
+            "signal": sig_type
         }
 
-    def place_trade(self, signal_data):
+    def place_trade(self, signal_data, telegram_config=None):
         symbol = signal_data["symbol"]
         side = "BUY" if signal_data["signal"] == "LONG" else "SELL"
         price = signal_data["price"]
         
+        self.log(f"🎯 Strategy Triggered for {symbol} ({side})")
+        
         # Quantity logic
-        balance = 50.0 # Hardcoded as per user req (or fetch real)
-        risk_qty = (balance * 0.02) / signal_data["atr"] # 2% risk / ATR
+        balance = 50.0 # Hardcoded demo balance
+        risk_qty = (balance * 0.02) / signal_data["atr"] 
         
-        # Rounding (simplified)
         qty = round(risk_qty, 3) 
-        if qty <= 0: return
+        if qty <= 0: 
+            self.log(f"🚫 Trade too small for {symbol} (Qty: {qty})")
+            return
         
-        self.log(f"🚀 EXECUTING LIVE TRADE: {side} {qty} {symbol} @ {price}")
+        self.log(f"⚡ EVALUATING {side} PROTOCOL: {qty} {symbol} @ {price}")
         
-        # REAL TRADING ENABLED
+        if self.is_virtual:
+            self.log(f"🛡️ [SHADOW] Forwarding signal to virtual ledger (No real execution).")
+            # Record to Ledger (Step 15)
+            try:
+                from app.main import sim
+                sim.record(symbol, side, signal_data.get("score", 1.0), news_ai.sentiment_score)
+            except: pass
+            return
+
         try:
             self.client.futures_create_order(symbol=symbol, side=side, type="MARKET", quantity=qty)
-            self.log(f"✅ Trade executed successfully: {side} {symbol}")
+            self.log(f"✨ SUCCESS: {side} order filled for {symbol}")
+            
+            # Record to Ledger (Step 15)
+            try:
+                from app.main import sim
+                sim.record(symbol, side, signal_data.get("score", 1.0), news_ai.sentiment_score)
+            except: pass
+
+            if telegram_config:
+                asyncio.run(telegram_ai.send_signal_alert(symbol, side, news_ai.sentiment_score, 0.95))
         except Exception as e:
-            self.log(f"❌ Trade failed: {e}")
+            self.log(f"❌ EXECUTION FAILED: {str(e)}")
+            if telegram_config:
+                send_telegram_msg(telegram_config.get("token"), telegram_config.get("chat_id"), f"❌ Trade Failed: {symbol} {side}\nError: {str(e)}")
 
     def set_leverage(self, leverage):
+        if self.is_virtual:
+            self.log(f"⚙️ SHADOW MODE: Skipping leverage sync.")
+            return
+
         try:
             self.client.futures_change_leverage(symbol=CONFIG["symbol"], leverage=leverage)
-            self.log(f"✅ Leverage set to {leverage}x")
+            self.log(f"⚙️ Binance Protocol: Leverage updated to {leverage}x")
         except Exception as e:
-            self.log(f"❌ Failed to set leverage: {e}")
+            self.log(f"❌ Leverage error: {e}")
 
-    def run(self, api_key=None, api_secret=None, leverage=1):
+    def run(self, api_key=None, api_secret=None, leverage=1, telegram_config=None, use_news_ai=False):
         self.running = True
         try:
+            self.log("Initializing secure connection to Binance...")
             self.connect(api_key, api_secret)
             self.set_leverage(leverage)
             
+            if telegram_config:
+                send_telegram_msg(telegram_config.get("token"), telegram_config.get("chat_id"), "🚀 AI Bot Started Successfully!")
+
+            self.log("Training local ML model on historical BTC data...")
             if not self.train_model():
-                self.log("Model training failed. Stopping.")
+                self.log("❌ Training failed. Insufficient data.")
                 return
 
-            self.log("Starting scanning loop...")
+            self.log("🕵️ Starting high-frequency scanning loop...")
             while self.running:
+                import asyncio
+                
+                # --- FAST PATH: INFLUENCER ALPHA ---
+                if use_news_ai:
+                    alpha_event = asyncio.run(news_ai.scan_influencer_alpha())
+                    if alpha_event:
+                        # Institutional-grade event logging
+                        self.log(f"🚨 NEURAL_SIGNAL_TRIGGER: High-Impact intelligence detected.")
+                        self.log(f"↳ Source: @{alpha_event['account']} ({alpha_event['source']})")
+                        self.log(f"↳ Authority: {alpha_event['authority']} | Confidence: {alpha_event['confidence']:.2f}")
+                        self.log(f"↳ Core Intel: \"{alpha_event['content'][:60]}...\"")
+                        
+                        target_symbol = f"{alpha_event['coin'].upper()}USDT"
+                        if alpha_event['coin'].upper() == "MARKET": target_symbol = "BTCUSDT"
+                        
+                        self.log(f"⚡ FAST-PATH EXECUTION: Initiating emergency {target_symbol} protocol.")
+                        
+                        # Mock price/atr for fast-path if ohlcv fetch fails
+                        sig_data = {
+                            "symbol": target_symbol,
+                            "signal": "LONG",
+                            "price": 0.0, # Will be handled by market order
+                            "atr": 0.01,   # Standard default for emergency entry
+                            "score": 1.0
+                        }
+                        self.place_trade(sig_data, telegram_config)
+
+                # --- STANDARD PATH: ML SCAN ---
                 symbols = self.get_top_symbols()
+                self.log(f"🌐 Identified {len(symbols)} high-volume candidates...")
                 best_signal = None
                 best_score = 0
                 
                 for sym in symbols:
                     if not self.running: break
-                    sig = self.compute_signal(sym)
+                    # Fix: use_news_ai needs to be passed correctly. 
+                    import asyncio
+                    sig = asyncio.run(self.compute_signal(sym, use_news_ai))
                     if sig and abs(sig["score"]) > abs(best_score):
                         best_score = sig["score"]
                         best_signal = sig
                 
                 if best_signal and abs(best_score) > 0.07:
-                    self.log(f"Found opportunity: {best_signal['symbol']} Score: {best_signal['score']:.2f}")
-                    self.place_trade(best_signal)
+                    self.log(f"💡 High-probability signal identified on {best_signal['symbol']}!")
+                    self.place_trade(best_signal, telegram_config)
                 else:
-                    self.log("No strong signals found.")
+                    self.log("💤 Market scan complete. No high-conviction signals. Sleeping for 60s...")
                 
-                # Sleep
                 for _ in range(60):
                     if not self.running: break
                     time.sleep(1)

@@ -40,8 +40,14 @@ export default function BotsPage() {
       setIsChecking(false);
     };
     checkAuth();
-  }, [router]);
 
+    const handleOpenSub = () => setIsModalOpen(true);
+    window.addEventListener("open-subscription-modal", handleOpenSub);
+
+    return () => {
+        window.removeEventListener("open-subscription-modal", handleOpenSub);
+    };
+  }, [router]);
 
 
   const scenarios = [
@@ -206,6 +212,11 @@ PnL: **${pnl > 0 ? "+" : ""}${pnl}%**`,
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         recentTrades={recentTrades}
+      />
+      
+      <SubscriptionModal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
       />
     </div>
   );

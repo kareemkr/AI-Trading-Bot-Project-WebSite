@@ -6,6 +6,7 @@ from app.ml.scanner import MarketScanner
 from app.trading.binance_client import BinanceClient, get_testnet_client, get_real_client
 from app.trading.executor import TradeExecutor
 from app.trading.risk import RISK_CONFIG
+from app.services.news_service import news_ai
 
 
 def run_trading_bot(bot_manager):
@@ -96,12 +97,35 @@ def run_trading_bot(bot_manager):
                 
                 bot_manager.log(f"🎯 Evaluating: {signal['symbol']} {signal['signal']} (score: {signal['score']:.4f})")
                 
+                # LINK SENTIMENT ENGINE (Step 9/10)
+                base_coin = signal['symbol'].replace("USDT", "")
+                sentiment_rec = news_ai.get_decision(base_coin)
+                
+                if sentiment_rec == "SELL" and signal['signal'] == "BUY":
+                    bot_manager.log(f"⚠️ BLOCKED: {signal['symbol']} technical BUY rejected by SELL sentiment.")
+                    continue
+                if sentiment_rec == "BUY" and signal['signal'] == "SELL":
+                    bot_manager.log(f"⚠️ BLOCKED: {signal['symbol']} technical SELL rejected by BUY sentiment.")
+                    continue
+                if sentiment_rec == "WAITING":
+                    bot_manager.log(f"⏳ WAITING: Low confidence in {base_coin} sentiment signals.")
+                    # Optional: still trade if confidence is very high in scanner? 
+                    # For now, let's keep it tight.
+
                 # Execute trade
+                from app.main import sim
                 result = executor.execute_trade(signal, balance)
                 
                 if result:
                     bot_manager.log(f"✅ Trade executed successfully!")
                     trade_executed = True
+                    # Record to simulator (Step 15)
+                    sim.record(
+                        coin=signal['symbol'],
+                        action=signal['signal'],
+                        strength=signal['score'],
+                        sentiment=news_ai.sentiment_score
+                    )
                     # Update balance estimate (simplified)
                     balance = client.get_futures_balance("USDT")
                     break

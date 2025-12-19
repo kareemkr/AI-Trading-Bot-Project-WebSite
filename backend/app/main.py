@@ -46,15 +46,18 @@ from app.api.auth import router as auth_router
 from app.api.assistant import router as assistant_router
 from app.api.oauth import router as oauth_router
 from app.api.payment import router as payment_router
-from app.routes import auth, bot, status
+from app.api.news import router as news_router
+from app.routes import auth, bot, status, account
 
 app.include_router(auth_router)
 app.include_router(assistant_router)
 app.include_router(oauth_router)
 app.include_router(payment_router)
+app.include_router(news_router)
 app.include_router(auth.router)
 app.include_router(bot.router)
 app.include_router(status.router)
+app.include_router(account.router)
 
 # -----------------------------
 # ROOT
@@ -77,3 +80,53 @@ async def startup_event():
 @app.get("/")
 def root():
     return {"message": "Backend is running"}
+
+# -----------------------------
+# STEP 14: Trading History Endpoint
+# -----------------------------
+import sqlite3
+
+@app.get("/trading/history")
+async def get_trading_history():
+    try:
+        c = sqlite3.connect("signals_v2.db")
+        # heuristic_score, source, created_at, targets_json
+        rows = c.execute("SELECT heuristic_score, source, created_at, targets_json FROM events ORDER BY created_at DESC LIMIT 100").fetchall()
+        c.close()
+        
+        results = []
+        for r in rows:
+            import json
+            try:
+                coin = json.loads(r[3])[0] if r[3] else "MARKET"
+            except:
+                coin = "MARKET"
+                
+            results.append({
+                "sentiment": round(r[0], 2),
+                "source": r[1],
+                "timestamp": r[2],
+                "coin": coin
+            })
+        return results
+    except Exception as e:
+        return {"error": str(e)}
+
+# -----------------------------
+# STEP 15: Trade Simulator Endpoint
+# -----------------------------
+from app.services.trade_simulator import TradeSim
+sim = TradeSim()
+
+@app.get("/trading/last")
+async def get_last_trades():
+    return sim.last(20)
+
+# -----------------------------
+# STEP 16: News Alpha Feed
+# -----------------------------
+@app.get("/news/alpha")
+async def get_alpha_feed():
+    from app.services.news_service import news_ai
+    # Return normalized alpha events for the high-authority sidebar
+    return news_ai.alpha_events

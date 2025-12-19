@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, CreditCard, Shield, Clock, LogOut, Camera, Edit2, Check, X } from "lucide-react";
+import { User, CreditCard, Shield, Clock, LogOut, Camera, Edit2, Check, X, Star, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 
@@ -42,7 +42,7 @@ export function ProfileModal({ open, onClose, onUpgrade }: ProfileModalProps) {
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    toast.success("Logged out successfully");
+    toast.info("Session Terminated", { description: "You have been securely logged out." });
     window.location.href = "/";
   };
 
@@ -60,7 +60,7 @@ export function ProfileModal({ open, onClose, onUpgrade }: ProfileModalProps) {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-        const token = localStorage.getItem("token"); // Assuming you store token
+        const token = localStorage.getItem("token");
         if (!token) throw new Error("No token found");
 
         const res = await fetch("http://localhost:8000/auth/update", {
@@ -78,13 +78,11 @@ export function ProfileModal({ open, onClose, onUpgrade }: ProfileModalProps) {
         if (!res.ok) throw new Error("Update failed");
         
         const data = await res.json();
-        
-        // Update local storage
         const updatedUser = { ...user, name: data.name, avatar: data.avatar };
-        localStorage.setItem("user", JSON.stringify(updatedUser)); // Fix: Update the user object, not just name
+        localStorage.setItem("user", JSON.stringify(updatedUser));
         setUser(updatedUser);
         
-        toast.success("Profile Updated!");
+        toast.success("Identity Verified!", { description: "Your profile details have been updated." });
         setIsEditing(false);
     } catch (e) {
         toast.error("Failed to update profile");
@@ -96,34 +94,35 @@ export function ProfileModal({ open, onClose, onUpgrade }: ProfileModalProps) {
 
   if (!user) return null;
 
-  const isPremium = user.subscription_status === "premium";
-  const planName = isPremium ? "Elite Plan" : "Free Plan";
+  const status = user.subscription_status?.toLowerCase();
+  const isPremium = status === "pro" || status === "elite";
+  const isElite = status === "elite" || status === "pro";
+  
+  const planName = isElite ? "Elite Executive" : "Free Explorer";
   
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-xl border border-gray-100 shadow-2xl p-0 overflow-hidden outline-none">
+      <DialogContent className="sm:max-w-md bg-card/80 backdrop-blur-3xl border border-white/10 shadow-[0_32px_128px_-32px_rgba(0,0,0,0.8)] p-0 overflow-hidden outline-none rounded-[2.5rem]">
         <DialogTitle className="sr-only">User Profile</DialogTitle>
-        <DialogDescription className="sr-only">Manage your account settings</DialogDescription>
+        <DialogDescription className="sr-only">Account management and settings</DialogDescription>
         
-        {/* Header / Banner */}
-        <div className={`h-36 ${isPremium ? "bg-black" : "bg-gray-100"} relative flex items-center justify-center overflow-hidden transition-colors duration-500`}>
-            {isPremium && (
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 animate-pulse" />
-            )}
+        {/* Header Banner */}
+        <div className={`h-40 ${isPremium ? "bg-accent/20" : "bg-white/5"} relative flex items-center justify-center overflow-hidden`}>
+            {/* Animated Mesh */}
+            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_50%_50%,var(--accent)_0%,transparent_70%)] animate-pulse" />
             
             <div className="z-10 text-center relative group">
-                {/* Avatar */}
-                 <div className={`w-24 h-24 rounded-full mx-auto border-4 border-white shadow-xl flex items-center justify-center text-3xl font-bold mb-2 relative overflow-hidden ${isPremium ? "bg-gradient-to-tr from-yellow-400 to-orange-500 text-white" : "bg-gray-200 text-gray-400"}`}>
+                {/* Futuristic Avatar */}
+                 <div className={`w-28 h-28 rounded-[2rem] mx-auto border-4 border-card shadow-2xl flex items-center justify-center text-4xl font-black mb-2 relative overflow-hidden transition-all duration-500 scale-100 group-hover:scale-105 ${isPremium ? "bg-accent/10 text-accent border-accent/20 shadow-accent/20" : "bg-muted text-muted-foreground border-white/5"}`}>
                     {newAvatar ? (
                         <img src={newAvatar} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                        user.name?.[0]?.toUpperCase() || "U"
+                        user.name?.[0]?.toUpperCase() || "T"
                     )}
                     
-                    {/* Camera Overlay */}
                     {isEditing && (
                         <div 
-                            className="absolute inset-0 bg-black/40 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="absolute inset-0 bg-black/60 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm"
                             onClick={() => fileInputRef.current?.click()}
                         >
                             <Camera className="w-8 h-8 text-white" />
@@ -133,100 +132,95 @@ export function ProfileModal({ open, onClose, onUpgrade }: ProfileModalProps) {
                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
             </div>
 
-            {/* Edit Button (Top Right) */}
-            <div className="absolute top-4 right-4">
+            {/* Actions */}
+            <div className="absolute top-6 right-6 flex gap-2">
                {!isEditing ? (
-                   <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 rounded-full" onClick={() => setIsEditing(true)}>
+                   <button 
+                    onClick={() => setIsEditing(true)}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white transition-all"
+                   >
                        <Edit2 className="w-4 h-4" />
-                   </Button>
+                   </button>
                ) : (
-                   <div className="flex gap-2">
-                       <Button variant="ghost" size="icon" className="text-red-400 hover:bg-white/20 rounded-full h-8 w-8" onClick={() => setIsEditing(false)}>
+                   <>
+                       <button onClick={() => setIsEditing(false)} className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-500 transition-all">
                            <X className="w-4 h-4" />
-                       </Button>
-                       <Button variant="ghost" size="icon" className="text-green-400 hover:bg-white/20 rounded-full h-8 w-8" onClick={handleSave} disabled={isSaving}>
+                       </button>
+                       <button onClick={handleSave} disabled={isSaving} className="p-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-500 transition-all">
                            <Check className="w-4 h-4" />
-                       </Button>
-                   </div>
+                       </button>
+                   </>
                )}
             </div>
         </div>
 
-        <div className="px-6 pb-6 pt-12 relative -mt-4 bg-white rounded-t-3xl">
+        <div className="px-8 pb-8 pt-12 relative -mt-6 bg-card border-t border-white/10 rounded-t-[3rem] shadow-inner">
             {/* Status Badge */}
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                 <div className={`px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow-lg flex items-center gap-1.5 ${isPremium ? "bg-gradient-to-r from-yellow-500 to-orange-600 ring-2 ring-white" : "bg-gray-500 ring-2 ring-white"}`}>
-                    {isPremium ? <Shield className="w-3 h-3 fill-current" /> : null}
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                 <div className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] text-white shadow-2xl flex items-center gap-2 border ${isElite ? "bg-accent text-accent-foreground border-white/20" : (isPremium ? "bg-white/10 text-white border-white/10" : "bg-muted text-muted-foreground border-white/5")}`}>
+                    {isElite ? <Star className="w-3.5 h-3.5 fill-current" /> : <Shield className="w-3.5 h-3.5" />}
                     {planName}
                  </div>
             </div>
 
-            <div className="text-center mb-8 mt-2">
+            <div className="text-center mb-10">
                 {isEditing ? (
-                    <Input 
+                    <input 
                         value={newName} 
                         onChange={(e) => setNewName(e.target.value)} 
-                        className="text-center font-bold text-lg h-9 border-b-2 border-primary/20 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-transparent px-0 w-2/3 mx-auto" 
+                        className="text-center font-black text-2xl bg-white/5 border border-white/10 rounded-2xl px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all" 
                     />
                 ) : (
-                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight">{user.name || "User"}</h2>
+                    <h2 className="text-3xl font-black text-white tracking-tighter">{user.name || "Trader"}</h2>
                 )}
-                <p className="text-sm text-gray-500 font-medium mt-1">{user.email}</p>
+                <p className="text-sm text-muted-foreground font-bold font-mono mt-2 opacity-50 uppercase tracking-widest">{user.email}</p>
             </div>
 
-            <div className="space-y-4">
-                <div className="bg-gray-50/80 p-4 rounded-2xl flex items-center gap-4 border border-gray-100 transition-transform hover:scale-[1.02] duration-300">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-sm">
-                        <CreditCard className="w-5 h-5" />
+            <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white/5 p-5 rounded-3xl border border-white/5 hover:border-white/10 transition-all group">
+                    <div className="w-10 h-10 rounded-2xl bg-accent/10 text-accent flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                        <Zap className="w-5 h-5 fill-accent" />
                     </div>
-                    <div className="flex-1">
-                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wide">Status</p>
-                        <p className="text-sm font-bold text-gray-900 capitalize">{user.subscription_status || "Free"}</p>
-                    </div>
-                    {isPremium && (
-                         <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                    )}
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Protocol</p>
+                    <p className="text-sm font-bold text-white mt-1">Trading v4.2</p>
                 </div>
 
-                {isPremium && (
-                    <div className="bg-gray-50/80 p-4 rounded-2xl flex items-center gap-4 border border-gray-100 transition-transform hover:scale-[1.02] duration-300 delay-75">
-                        <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shadow-sm">
-                            <Clock className="w-5 h-5" />
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wide">Subscription</p>
-                            <p className="text-sm font-bold text-gray-900">Lifetime Access</p>
-                        </div>
+                <div className="bg-white/5 p-5 rounded-3xl border border-white/5 hover:border-white/10 transition-all group">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                        <Shield className="w-5 h-5" />
                     </div>
-                )}
+                    <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Security</p>
+                    <p className="text-sm font-bold text-white mt-1">Encrypted</p>
+                </div>
             </div>
 
-            <div className="mt-8 flex gap-3">
-                {!isPremium ? (
-                    <Button 
-                        className="flex-1 bg-black text-white hover:bg-black/90 h-11 rounded-xl font-bold shadow-xl shadow-black/10 transition-all hover:translate-y-[-2px]"
+            <div className="mt-8 flex items-center justify-between gap-4">
+                 <button 
+                  onClick={handleLogout}
+                  className="p-4 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 text-red-500 rounded-2xl transition-all group"
+                  title="Logout Session"
+                 >
+                    <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                 </button>
+
+                 {!isElite ? (
+                    <button 
+                        className="flex-1 py-4 bg-accent text-accent-foreground rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-accent/20 hover:shadow-accent/40 active:scale-95 transition-all"
                         onClick={() => {
                             onClose();
                             onUpgrade?.();
                         }}
                     >
-                        Upgrade to Elite 🚀
-                    </Button>
+                        {status === 'pro' ? 'Upgrade to Elite' : 'Unlock Full Suite'}
+                    </button>
                 ) : (
-                    <Button variant="outline" className="flex-1 border-gray-200 bg-gray-50 hover:bg-gray-100 h-11 rounded-xl rounded-r-none font-semibold text-gray-600" disabled>
-                        Manage Subscription
-                    </Button>
+                    <button 
+                        className="flex-1 py-4 bg-white/5 text-white/40 border border-white/10 rounded-2xl font-black text-xs uppercase tracking-widest cursor-not-allowed"
+                        disabled
+                    >
+                        Elite System Active
+                    </button>
                 )}
-                
-                <Button 
-                    variant="ghost" 
-                    className={`h-11 rounded-xl ${isPremium ? "flex-1 border border-gray-200 rounded-l-none" : "w-14"} text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors`}
-                    onClick={handleLogout}
-                    title="Sign Out"
-                >
-                    <LogOut className="w-5 h-5" />
-                    {isPremium && <span className="ml-2 font-semibold">Sign Out</span>}
-                </Button>
             </div>
         </div>
       </DialogContent>

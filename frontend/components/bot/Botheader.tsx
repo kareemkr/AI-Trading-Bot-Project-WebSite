@@ -63,28 +63,28 @@ rounded-xl hover:bg-accent/50"
           <Menu className="h-5 w-5" />
         </Button>
 
-        <div className="flex items-center gap-3 pl-2 border-l border-border/40 h-8">
-            <div className={`relative w-10 h-10 rounded-full flex items-center justify-center p-[2px] ${isPremium ? "bg-gradient-to-tr from-yellow-400 to-orange-500 shadow-lg shadow-orange-500/20" : "bg-muted"}`}>
-               <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
+        <div className="flex items-center gap-4 pl-3 border-l border-white/10 h-10">
+            <div className={`relative w-10 h-10 rounded-xl flex items-center justify-center p-[2px] ${user?.subscription_status === "elite" || user?.subscription_status === "pro" ? "bg-gradient-to-tr from-accent to-emerald-400 shadow-xl shadow-accent/20" : "bg-white/10"}`}>
+               <div className="w-full h-full rounded-[0.5rem] bg-card flex items-center justify-center overflow-hidden">
                    {user?.avatar ? (
                        <img src={user.avatar} alt="User" className="w-full h-full object-cover" />
                    ) : (
-                       <span className="text-sm font-bold">{user?.name?.[0]?.toUpperCase() || "U"}</span>
+                       <span className="text-xs font-black uppercase italic">{user?.name?.[0]?.toUpperCase() || "U"}</span>
                    )}
                </div>
             </div>
             
             <div className="flex flex-col">
                  <div className="flex items-center gap-2">
-                     <span className="font-bold text-sm tracking-tight">{user?.name || "Guest"}</span>
-                     {isPremium && (
-                         <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-gradient-to-r from-yellow-500 to-orange-600 text-white shadow-sm tracking-wider">
-                             PRO
+                     <span className="font-black text-xs uppercase italic tracking-tighter">{user?.name || "Neural_Operator"}</span>
+                     {(user?.subscription_status === "pro" || user?.subscription_status === "elite") && (
+                         <span className="text-[9px] font-black italic px-2 py-0.5 rounded-full bg-accent text-accent-foreground shadow-lg shadow-accent/20 tracking-widest uppercase">
+                             ELITE
                          </span>
                      )}
                  </div>
-                 <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
-                     {isPremium ? "Elite Trader" : "Free Plan"}
+                 <span className="text-[9px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60">
+                     {user?.subscription_status === "elite" || user?.subscription_status === "pro" ? "Institutional Access" : "Basic Terminal"}
                  </span>
             </div>
         </div>

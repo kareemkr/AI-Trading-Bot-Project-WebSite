@@ -31,7 +31,7 @@ class BotManager:
     # -------------------------
     # Start bot engine
     # -------------------------
-    def start_bot(self, api_key: str = None, api_secret: str = None, leverage: int = 1):
+    def start_bot(self, api_key: str = None, api_secret: str = None, leverage: int = 1, telegram_config: dict = None, use_news_ai: bool = False):
         if self.running:
             return "Bot already running."
 
@@ -42,7 +42,7 @@ class BotManager:
 
         def run():
             try:
-                self.engine.run(api_key, api_secret, leverage)
+                self.engine.run(api_key, api_secret, leverage, telegram_config, use_news_ai)
             except Exception as e:
                 self.log(f"ENGINE ERROR: {e}")
             finally:

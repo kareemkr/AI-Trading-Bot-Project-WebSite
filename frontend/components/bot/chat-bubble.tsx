@@ -21,28 +21,31 @@ export function ChatBubble({ role, content, timestamp }: ChatBubbleProps) {
       )}
     >
       {!isUser && (
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-          <Bot className="w-4 h-4 text-primary" />
+        <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shadow-lg shadow-accent/5">
+          <Bot className="w-5 h-5 text-accent" />
         </div>
       )}
 
       <div
         className={cn(
-          "max-w-[80%] md:max-w-[70%] rounded-2xl px-4 py-3",
+          "max-w-[85%] md:max-w-[75%] rounded-[1.5rem] px-5 py-4 shadow-xl backdrop-blur-md transition-all",
           isUser
-            ? "bg-primary text-primary-foreground rounded-br-md"
-            : "bg-card border border-border rounded-bl-md"
+            ? "bg-accent text-accent-foreground rounded-tr-sm shadow-accent/20"
+            : "bg-card/80 border border-white/5 rounded-tl-sm shadow-black/20"
         )}
       >
-        <div className="prose prose-sm prose-invert max-w-none">
+        <div className={cn(
+            "prose prose-sm max-w-none leading-relaxed",
+            isUser ? "prose-invert font-bold" : "prose-invert opacity-90"
+        )}>
           <ReactMarkdown>{content}</ReactMarkdown>
         </div>
 
         {timestamp && (
           <p
             className={cn(
-              "text-[10px] mt-2 opacity-60",
-              isUser ? "text-primary-foreground" : "text-muted-foreground"
+              "text-[9px] mt-2 font-black uppercase tracking-widest opacity-40",
+              isUser ? "text-accent-foreground" : "text-muted-foreground"
             )}
           >
             {timestamp.toLocaleTimeString([], {
@@ -54,8 +57,8 @@ export function ChatBubble({ role, content, timestamp }: ChatBubbleProps) {
       </div>
 
       {isUser && (
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
-          <User className="w-4 h-4 text-secondary-foreground" />
+        <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center shadow-lg">
+          <User className="w-5 h-5 text-muted-foreground" />
         </div>
       )}
     </div>

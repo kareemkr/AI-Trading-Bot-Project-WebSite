@@ -40,17 +40,28 @@ export function ChatWindow({
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 overflow-y-auto chat-scroll">
-        <div className="max-w-3xl mx-auto flex flex-col items-center justify-center h-full px-4 py-10 text-center space-y-10">
-          <div className="space-y-4">
-            <div className="w-20 h-20 mx-auto rounded-2xl bg-primary/20 flex items-center justify-center">
-              <span className="text-3xl font-bold text-primary">K</span>
+      <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+        {/* Futuristic Background Glow */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--accent)_0%,_transparent_70%)] opacity-[0.03] pointer-events-none" />
+        
+        <div className="max-w-4xl mx-auto flex flex-col items-center justify-center h-full px-6 py-10 text-center relative z-10">
+          <div className="space-y-8 mb-12">
+            <div className="w-24 h-24 mx-auto rounded-[2rem] bg-accent/10 border border-accent/20 flex items-center justify-center shadow-2xl shadow-accent/10 group hover:scale-110 transition-transform duration-500">
+              <img src="/neural-logo.png" className="w-16 h-16 object-cover rounded-xl" alt="Neural Flow" />
             </div>
 
-            <h1 className="text-3xl font-bold">Welcome to KRO</h1>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Your AI-powered trading assistant. Ask me about market analysis,
-              trading strategies, or portfolio management.
+            <div className="space-y-2">
+              <h1 className="text-4xl md:text-5xl font-black italic uppercase tracking-tighter">
+                Neural <span className="text-accent">Assistant</span>
+              </h1>
+              <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.3em]">
+                Hybrid Intelligence Operational
+              </p>
+            </div>
+            
+            <p className="text-sm font-medium text-muted-foreground max-w-lg mx-auto leading-relaxed border-t border-white/5 pt-6">
+              "Unified signal engine. Processing charts and news sentiment. 
+              Deploying logic for market domination."
             </p>
           </div>
 

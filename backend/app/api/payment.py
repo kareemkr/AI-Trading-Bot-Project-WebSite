@@ -10,6 +10,7 @@ class CryptoConfirmData(BaseModel):
     email: str
     tx_hash: str
     wallet_address: str
+    plan_name: str # "pro" or "elite"
     duration: str = "monthly"
 
 @router.post("/crypto-confirm")
@@ -31,11 +32,11 @@ async def crypto_confirm(data: CryptoConfirmData):
     expiry = now + timedelta(days=days)
 
     # Update User
-    users_db[data.email]["subscription_status"] = "premium"
+    users_db[data.email]["subscription_status"] = data.plan_name.lower()
     users_db[data.email]["wallet_address"] = data.wallet_address
     users_db[data.email]["subscription_expiry"] = expiry.isoformat()
 
     return {
-        "message": "Payment confirmed! Upgraded to Premium.",
-        "subscription_status": "premium"
+        "message": f"Payment confirmed! Upgraded to {data.plan_name.capitalize()}.",
+        "subscription_status": data.plan_name.lower()
     }

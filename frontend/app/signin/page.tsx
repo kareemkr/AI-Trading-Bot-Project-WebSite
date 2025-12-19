@@ -49,7 +49,7 @@ export default function SigninPage() {
         })
       );
 
-      router.push("/"); // HOME
+      router.push("/dashboard"); // HOME
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -58,17 +58,22 @@ export default function SigninPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md">
+    <main className="min-h-screen flex items-center justify-center bg-background px-4 relative overflow-hidden">
+      {/* Passionate Futuristic Background Elements */}
+      <div className="absolute top-0 left-0 w-[400px] h-[400px] bg-accent/10 rounded-full blur-[100px] -z-10 animate-pulse" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[100px] -z-10" />
+
+      <div className="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="text-center mb-8">
-          <div className="inline-flex w-16 h-16 rounded-2xl bg-accent/10 items-center justify-center mb-4">
-            <Sparkles className="w-8 h-8 text-accent" />
+          <div className="inline-flex w-24 h-24 rounded-[2rem] bg-white/5 border border-white/10 items-center justify-center mb-6 shadow-2xl backdrop-blur-xl group overflow-hidden">
+             <img src="/neural-logo.png" className="w-full h-full object-cover scale-150 group-hover:scale-[1.6] transition-transform duration-500" alt="Neural Flow Logo" />
           </div>
-          <h1 className="text-3xl font-bold">Welcome Back</h1>
-          <p className="text-muted-foreground">Sign in to continue</p>
+          <h1 className="text-4xl font-black tracking-tighter text-white">Welcome Back</h1>
+          <p className="text-muted-foreground font-medium mt-2">Access your secure trading account.</p>
         </div>
 
-        <div className="bg-card p-8 rounded-3xl border border-border">
+        <div className="bg-white/5 backdrop-blur-3xl p-8 rounded-[2.5rem] border border-white/10 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent to-transparent opacity-50" />
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />

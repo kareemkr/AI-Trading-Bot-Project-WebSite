@@ -13,3 +13,5 @@ scikit-learn
 matplotlib
 pandas
 numpy
+huggingface_hub
+feedparser

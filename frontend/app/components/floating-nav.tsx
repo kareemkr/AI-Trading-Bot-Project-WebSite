@@ -1,81 +1,108 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Rocket, Activity, LineChart, Repeat, User } from "lucide-react";
+import { ArrowRight, Rocket, Activity, LineChart, User } from "lucide-react";
 import { toast } from "sonner";
 import { ProfileModal } from "@/components/ui/profile-modal";
+import { ThemeToggle } from "@/components/dashboard/theme-toggle";
+import { isAuthenticated, isPremiumUser, getCurrentUser } from "@/lib/auth";
+import { useLanguage } from "@/lib/language-context";
 
 interface FloatingNavProps {
   onOpenSubscription?: () => void;
+  isHomePage?: boolean;
 }
 
-const navItems = [
-  { name: "Live Bot", icon: Rocket, href: "/real-bots" },
-  { name: "Demo Bot", icon: Activity, href: "/bots" },
-  { name: "Markets", icon: LineChart, href: "/markets" },
-  { name: "Trade", icon: Repeat, href: "/trade" },
-  { name: "Profile", icon: User, href: "#profile" },
-];
-
-export function FloatingNav({ onOpenSubscription }: FloatingNavProps) {
+export function FloatingNav({ onOpenSubscription, isHomePage = false }: FloatingNavProps) {
   const [activeItem, setActiveItem] = useState("Demo Bot");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { t } = useLanguage();
+
+  const navItems = [
+    { name: t.nav.live_bot, icon: Rocket, href: "/dashboard/bots", requiresAuth: true, requiresPremium: true },
+    { name: t.nav.demo_bot, icon: Activity, href: "/dashboard/demo", requiresAuth: false, requiresPremium: false },
+    { name: t.nav.market, icon: LineChart, href: "/dashboard/market", requiresAuth: false, requiresPremium: false },
+    { name: t.nav.profile, icon: User, href: "#profile", requiresAuth: true, requiresPremium: false },
+  ];
 
   // Helper to check access
-  const handleProtectedNavigation = (name: string, href: string) => {
+  const handleProtectedNavigation = (name: string, href: string, requiresAuth: boolean, requiresPremium: boolean) => {
+    setActiveItem(name);
+
     // Special handling for Profile
-    if (name === "Profile") {
+    // We check if name matches the translated "Profile" string
+    if (name === t.nav.profile) {
+        if (!isAuthenticated()) {
+            toast.error("Authentication Required", {
+                description: "Please sign in to view your profile.",
+                duration: 4000,
+                action: {
+                    label: "Sign In",
+                    onClick: () => window.location.href = "/signin"
+                }
+            });
+            return;
+        }
         setIsProfileOpen(true);
-        setActiveItem(name);
         return;
     }
 
-    setActiveItem(name);
-
-    const restricted = ["Trade"]; 
-    if (!restricted.includes(name)) {
-      window.location.href = href;
-      return;
+    // If on homepage, restrict access unless subscribed (or navigating to Demo)
+    if (isHomePage) {
+      if (name === t.nav.demo_bot) {
+        window.location.href = href;
+        return;
+      }
+      
+      // If user is NOT subscribed, show modal and block access
+      if (!isPremiumUser() && onOpenSubscription) {
+        onOpenSubscription();
+        return;
+      }
     }
 
-    // Check Logic
-    const userStr = localStorage.getItem("user");
-    if (!userStr) {
-      toast.error("Access Denied", {
-        description: "Please login or subscribe to access this feature.",
+    // Check authentication requirement
+    if (requiresAuth && !isAuthenticated()) {
+      toast.error("Authentication Required", {
+        description: "Please sign in to access this feature.",
         duration: 4000,
         action: {
-            label: "Login",
-            onClick: () => window.location.href = "/signin"
+          label: "Sign In",
+          onClick: () => window.location.href = "/signin"
         }
       });
       return;
     }
 
-    try {
-      const user = JSON.parse(userStr);
-      if (user.subscription_status === "premium") {
-        window.location.href = href; // Allow access
-      } else {
-        toast.warning("Premium Feature", {
-          description: "You need an active subscription to access this.",
-          action: {
-            label: "Upgrade",
-            onClick: () => onOpenSubscription?.(),
-          },
-        });
-      }
-    } catch {
-      toast.error("Authentication Error", { description: "Please login again." });
+    // Check premium requirement
+    if (requiresPremium && !isPremiumUser()) {
+      toast.error("Elite Access Required", {
+        description: "This feature requires an Elite subscription.",
+        duration: 4000,
+        action: {
+          label: "Upgrade",
+          onClick: () => {
+            if (onOpenSubscription) {
+              onOpenSubscription();
+            } else {
+              window.location.href = "/dashboard/subscription";
+            }
+          }
+        }
+      });
+      return;
     }
+
+    // Navigate to the page
+    window.location.href = href;
   };
 
   return (
     <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
-      <div className="flex items-center gap-1.5 px-3 py-2.5 rounded-full border border-white/20 bg-black/80 backdrop-blur-2xl shadow-2xl shadow-black/40 ring-1 ring-white/10 transition-all hover:scale-[1.01]">
+      <div className="flex items-center gap-1.5 px-3 py-2.5 rounded-full border border-border/40 bg-card/80 backdrop-blur-2xl shadow-2xl shadow-black/10 ring-1 ring-white/5 transition-all hover:scale-[1.01]">
         {/* Logo */}
-        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center mr-2 shadow-lg shadow-emerald-500/30">
-          <span className="font-black text-white text-lg tracking-tighter">K</span>
+        <div className="w-12 h-12 rounded-full overflow-hidden border border-white/20 shadow-lg shadow-accent/10">
+          <img src="/neural-logo.png" className="w-full h-full object-cover scale-150" alt="Neural Flow Logo" />
         </div>
 
         {/* Nav Items */}
@@ -83,28 +110,23 @@ export function FloatingNav({ onOpenSubscription }: FloatingNavProps) {
           <button
             key={item.name}
             onClick={() => {
-              if (item.href) {
-                handleProtectedNavigation(item.name, item.href);
-              } else {
-                setActiveItem(item.name);
-                onOpenSubscription?.();
-              }
+              handleProtectedNavigation(item.name, item.href, item.requiresAuth, item.requiresPremium);
             }}
-            className={`px-5 py-2.5 text-sm transition-all rounded-full flex items-center gap-2.5 font-medium relative overflow-hidden group ${
+            className={`px-5 py-2.5 text-sm transition-all rounded-full flex items-center gap-2.5 font-black uppercase tracking-widest relative overflow-hidden group ${
               activeItem === item.name
-                ? "text-white bg-white/10 shadow-inner"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
+                ? "text-foreground bg-accent/10 shadow-inner"
+                : "text-muted-foreground hover:text-foreground hover:bg-white/5"
             }`}
           >
-            <item.icon className={`w-4 h-4 transition-transform group-hover:scale-110 ${activeItem === item.name ? "text-emerald-400" : ""}`} />
-            {item.name}
+            <item.icon className={`w-4 h-4 transition-transform group-hover:scale-110 ${activeItem === item.name ? "text-accent" : ""}`} />
+            <span className="opacity-80">{item.name}</span>
           </button>
         ))}
 
-        {/* Arrow Button */}
-        <button className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center ml-2 hover:bg-white/20 transition-all border border-white/10 active:scale-95 group">
-          <ArrowRight className="w-5 h-5 text-white group-hover:translate-x-0.5 transition-transform" />
-        </button>
+        {/* Theme Toggle */}
+        <div className="ml-1 pr-1 border-l border-white/10 pl-2">
+            <ThemeToggle compact />
+        </div>
       </div>
 
       <ProfileModal 

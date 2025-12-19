@@ -1,7 +1,8 @@
 "use client";
 
-import { X, Copy, Check } from "lucide-react";
+import { X, Copy, Check, Star, Zap, Shield, ChevronLeft, CreditCard } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface SubscriptionModalProps {
   open: boolean;
@@ -29,7 +30,18 @@ export default function SubscriptionModal({
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
 
-  // Copy Helper
+  const checkAuth = () => {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) {
+      toast.info("Authentication Required", {
+        description: "Please sign in or create an account to upgrade your plan.",
+      });
+      window.location.href = "/signin";
+      return false;
+    }
+    return true;
+  };
+
   const handleCopy = () => {
     navigator.clipboard.writeText(WALLETS[network]);
     setCopied(true);
@@ -37,6 +49,8 @@ export default function SubscriptionModal({
   };
 
   async function handleManualVerify() {
+    if (!checkAuth()) return;
+    
     setIsLoading(true);
     setError("");
 
@@ -46,8 +60,7 @@ export default function SubscriptionModal({
       }
 
       const userStr = localStorage.getItem("user");
-      if (!userStr) throw new Error("User not found (please sign in first)");
-      const user = JSON.parse(userStr);
+      const user = JSON.parse(userStr!);
 
       const res = await fetch("http://localhost:8000/payment/crypto-confirm", {
         method: "POST",
@@ -55,7 +68,8 @@ export default function SubscriptionModal({
         body: JSON.stringify({
           email: user.email,
           tx_hash: txHash,
-          wallet_address: WALLETS[network], // The address they sent TO
+          wallet_address: WALLETS[network],
+          plan_name: selectedPlan!.toLowerCase(),
           duration: yearly ? "yearly" : "monthly",
         }),
       });
@@ -63,11 +77,12 @@ export default function SubscriptionModal({
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Payment verification failed");
 
-      // Update Local State
-      user.subscription_status = "premium";
+      user.subscription_status = data.subscription_status;
       localStorage.setItem("user", JSON.stringify(user));
 
-      alert("Payment Confirmed! Account Upgraded.");
+      toast.success("Payment Received!", {
+        description: `Your account has been upgraded to ${selectedPlan}.`,
+      });
       onClose();
       window.location.reload();
 
@@ -78,72 +93,128 @@ export default function SubscriptionModal({
     }
   }
 
-  // If no plan selected, show pricing cards
+  const handlePlanSelection = (plan: "Pro" | "Elite") => {
+    if (checkAuth()) {
+      setSelectedPlan(plan);
+    }
+  };
+
   if (!selectedPlan) {
     return (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative w-[95%] max-w-[520px] bg-white text-black rounded-3xl shadow-2xl p-8 z-[10000]">
-          <button onClick={onClose} className="absolute top-5 right-5 text-gray-400 hover:text-gray-600">
-            <X className="w-6 h-6" />
-          </button>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 sm:p-6">
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+        
+        <div className="relative w-full max-w-[640px] bg-card/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] shadow-[0_32px_128px_-32px_rgba(0,0,0,0.8)] overflow-hidden animate-in zoom-in-95 duration-300">
+          {/* Futuristic Background Accents */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent to-transparent opacity-50" />
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent/20 rounded-full blur-[100px]" />
+          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-[100px]" />
 
-          <h2 className="text-3xl font-bold text-center">Supercharge Your Trading</h2>
-          <p className="text-center text-gray-500 mt-2">Choose your plan</p>
-
-          {/* TOGGLE */}
-          <div className="flex justify-center items-center gap-4 mt-6">
-            <span className={!yearly ? "font-semibold" : "text-gray-400"}>Monthly</span>
-            <button
-              onClick={() => setYearly(!yearly)}
-              className={`w-12 h-6 rounded-full relative transition ${yearly ? "bg-black/80" : "bg-gray-300"}`}
-            >
-              <div
-                className={`w-5 h-5 bg-white rounded-full absolute top-[2px] transition ${
-                  yearly ? "right-[2px]" : "left-[2px]"
-                }`}
-              />
+          <div className="relative p-8 sm:p-12">
+            <button onClick={onClose} className="absolute top-6 right-6 text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-white/5 transition-colors">
+              <X className="w-5 h-5" />
             </button>
-            <div className="flex flex-col items-start leading-tight">
-              <span className={yearly ? "font-semibold" : "text-gray-400"}>Yearly</span>
-              <span className="text-green-600 text-xs">Save 17%</span>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4 mt-8">
-            {/* PRO */}
-            <div className="border border-gray-300 rounded-2xl p-5 text-center shadow-sm flex flex-col justify-between">
-              <div>
-                <p className="text-lg font-semibold">Pro</p>
-                <p className="text-3xl font-bold mt-2">
-                  ${yearly ? "190" : "24"}
-                  <span className="text-base font-medium text-gray-500">/yr</span>
-                </p>
+            <div className="text-center space-y-4 mb-10">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-[10px] font-bold uppercase tracking-widest">
+                <Star className="w-3 h-3 fill-accent" /> Premium Trading Access
               </div>
-              <button
-                onClick={() => setSelectedPlan("Pro")}
-                className="mt-4 w-full py-2 bg-black text-white text-sm font-semibold rounded-xl hover:bg-black/80 transition"
-              >
-                Get Pro
-              </button>
+              <h2 className="text-4xl sm:text-5xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/60">
+                Choose Your Edge
+              </h2>
+              <p className="text-muted-foreground text-sm sm:text-base max-w-[340px] mx-auto leading-relaxed">
+                Empower your strategy with our institutional-grade AI intelligence.
+              </p>
             </div>
 
-            {/* ELITE */}
-            <div className="border border-gray-300 rounded-2xl p-5 text-center shadow-sm relative flex flex-col justify-between">
-              <p className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs bg-black text-white px-3 py-1 rounded-full">POPULAR</p>
-              <div>
-                <p className="text-lg font-semibold">Elite</p>
-                <p className="text-3xl font-bold mt-2">
-                  ${yearly ? "490" : "59"}
-                  <span className="text-base font-medium text-gray-500">/yr</span>
-                </p>
-              </div>
+            {/* TOGGLE */}
+            <div className="flex justify-center items-center gap-6 mb-12">
+              <span className={`text-sm font-bold tracking-tight transition-colors ${!yearly ? "text-white" : "text-muted-foreground"}`}>Monthly</span>
               <button
-                onClick={() => setSelectedPlan("Elite")}
-                className="mt-4 w-full py-2 bg-gradient-to-r from-orange-400 to-orange-600 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition"
+                onClick={() => setYearly(!yearly)}
+                className={`w-14 h-7 rounded-full relative transition-all duration-300 shadow-inner group ${yearly ? "bg-accent/20" : "bg-white/5 border border-white/10"}`}
               >
-                Get Elite
+                <div
+                  className={`w-5 h-5 rounded-full absolute top-1 transition-all duration-300 shadow-xl ${
+                    yearly ? "right-1 bg-accent" : "left-1 bg-white/40 group-hover:bg-white/60"
+                  }`}
+                />
               </button>
+              <div className="flex items-center gap-2">
+                <span className={`text-sm font-bold tracking-tight transition-colors ${yearly ? "text-white" : "text-muted-foreground"}`}>Yearly</span>
+                <span className="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-500 text-[10px] font-black uppercase border border-emerald-500/20 shadow-lg shadow-emerald-500/5">
+                  -25%
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* PRO */}
+              <div className="group relative bg-white/[0.03] border border-white/10 rounded-3xl p-6 transition-all hover:bg-white/[0.05] hover:border-white/20 hover:-translate-y-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform">
+                    <Shield className="w-5 h-5 text-white/60" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Pro Access</h3>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Signals Only</p>
+                  </div>
+                </div>
+                <div className="mb-8">
+                  <p className="text-4xl font-black tracking-tight">
+                    ${yearly ? "180" : "19"}
+                    <span className="text-sm font-medium text-muted-foreground">/{yearly ? "yr" : "mo"}</span>
+                  </p>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  {["5+ AI Market Signals Daily", "Priority Notifications", "Sentiment Analysis", "Institutional Signal Accuracy"].map((feat) => (
+                    <li key={feat} className="flex items-center gap-2 text-[12px] font-medium text-white/70">
+                      <div className="w-1 h-1 rounded-full bg-accent" /> {feat}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => handlePlanSelection("Pro")}
+                  className="w-full py-4 bg-white/5 hover:bg-white/10 text-white text-sm font-bold rounded-2xl transition-all border border-white/10 group-hover:border-white/20"
+                >
+                  Get Professional Signals
+                </button>
+              </div>
+
+              {/* ELITE */}
+              <div className="group relative bg-accent/5 border border-accent/30 rounded-3xl p-6 transition-all hover:bg-accent/10 hover:border-accent/50 hover:-translate-y-1 overflow-hidden shadow-[0_0_40px_-20px_rgba(var(--accent-rgb),0.5)]">
+                <div className="absolute top-0 right-0 p-1 px-3 py-1.5 bg-accent text-accent-foreground text-[10px] font-black uppercase tracking-tighter rounded-bl-2xl">
+                  Full Suite
+                </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-2xl bg-accent/20 flex items-center justify-center border border-accent/20 group-hover:scale-110 transition-transform">
+                    <Zap className="w-5 h-5 text-accent" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-accent">Elite System</h3>
+                    <p className="text-[10px] text-accent/60 font-medium uppercase tracking-wider">Full Automation</p>
+                  </div>
+                </div>
+                <div className="mb-8">
+                  <p className="text-4xl font-black tracking-tight">
+                    ${yearly ? "440" : "49"}
+                    <span className="text-sm font-medium text-muted-foreground">/{yearly ? "yr" : "mo"}</span>
+                  </p>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  {["Unlimited AI Signals", "Fully Automated Trading Bot", "Upcoming News Trading AI", "VIP Institutional Tools"].map((feat) => (
+                    <li key={feat} className="flex items-center gap-2 text-[12px] font-medium text-white/90">
+                      <div className="w-1 h-1 rounded-full bg-accent animate-pulse" /> {feat}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => handlePlanSelection("Elite")}
+                  className="w-full py-4 bg-accent text-accent-foreground text-sm font-bold rounded-2xl transition-all shadow-lg shadow-accent/20 hover:shadow-accent/40 active:scale-95 translate-y-0"
+                >
+                  Activate Elite Protocol
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -153,44 +224,59 @@ export default function SubscriptionModal({
 
   // PAYMENT / ADDRESS SCREEN
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-[95%] max-w-[520px] bg-white text-black rounded-3xl shadow-2xl p-8 z-[10000]">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+      <div className="relative w-full max-w-[500px] bg-card/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] shadow-2xl p-8 sm:p-10 animate-in translate-y-4 duration-300">
         
         {/* HEADER */}
-        <div className="flex items-center justify-between mb-6">
-          <button onClick={() => setSelectedPlan(null)} className="text-sm text-gray-500 hover:text-black">
-            ← Back
+        <div className="flex items-center justify-between mb-8">
+          <button 
+            onClick={() => setSelectedPlan(null)} 
+            className="flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest"
+          >
+            <ChevronLeft className="w-4 h-4" /> Back to plans
           </button>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="w-6 h-6" />
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-white/5">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <h2 className="text-2xl font-bold text-center">Complete Payment</h2>
-        <p className="text-center text-gray-500 mt-1">Send USDT to the address below</p>
+        <div className="text-center space-y-2 mb-10">
+          <h2 className="text-3xl font-black tracking-tighter">Finalize Upgrade</h2>
+          <p className="text-muted-foreground text-sm">Secure crypto payment via USDT</p>
+        </div>
 
-        {/* AMOUNT */}
-        <div className="mt-6 text-center bg-gray-50 p-4 rounded-xl">
-          <p className="text-sm text-gray-500">Amount to send</p>
-          <p className="text-3xl font-bold">
-            ${selectedPlan === "Pro" ? (yearly ? "190" : "24") : (yearly ? "490" : "59")}
-            <span className="text-lg text-gray-500 font-normal">.00 USDT</span>
-          </p>
+        {/* SUMMARY CARD */}
+        <div className="mb-8 p-6 rounded-3xl bg-white/[0.03] border border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${selectedPlan === "Elite" ? "bg-accent/20 text-accent" : "bg-white/5 text-white/60"}`}>
+                   <CreditCard className="w-6 h-6" />
+                </div>
+                <div>
+                   <p className="text-sm font-bold">{selectedPlan} Plan</p>
+                   <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">{yearly ? 'Billed Yearly' : 'Billed Monthly'}</p>
+                </div>
+            </div>
+            <div className="text-right">
+                <p className="text-2xl font-black tracking-tight">
+                    ${selectedPlan === "Pro" ? (yearly ? "180" : "19") : (yearly ? "440" : "49")}
+                </p>
+                <p className="text-[10px] font-bold text-emerald-500 uppercase">USDT Only</p>
+            </div>
         </div>
 
         {/* NETWORK SELECTOR */}
-        <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Select Network</label>
-          <div className="grid grid-cols-4 gap-2">
+        <div className="space-y-4 mb-8">
+          <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] px-1 pointer-events-none">Select Blockchain Network</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {Object.keys(WALLETS).map((net) => (
               <button
                 key={net}
                 onClick={() => setNetwork(net as any)}
-                className={`py-2 text-xs font-semibold rounded-lg border transition ${
+                className={`py-3 text-[11px] font-black rounded-xl border transition-all duration-300 ${
                   network === net
-                    ? "bg-black text-white border-black"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                    ? "bg-accent/10 text-accent border-accent/40 shadow-lg shadow-accent/10"
+                    : "bg-white/5 text-muted-foreground border-white/5 hover:border-white/20"
                 }`}
               >
                 {net}
@@ -200,45 +286,51 @@ export default function SubscriptionModal({
         </div>
 
         {/* ADDRESS */}
-        <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Deposit Address ({network})</label>
+        <div className="space-y-4 mb-8">
+            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] px-1 pointer-events-none">Contract Address ({network})</label>
             <div className="flex items-center gap-2">
-                <div className="flex-1 bg-gray-100 p-3 rounded-xl text-xs font-mono break-all border border-gray-200">
+                <div className="flex-1 bg-black/40 p-4 rounded-2xl text-[11px] font-mono break-all border border-white/5 text-muted-foreground">
                     {WALLETS[network]}
                 </div>
                 <button 
                   onClick={handleCopy}
-                  className="p-3 bg-gray-100 hover:bg-gray-200 rounded-xl border border-gray-200 transition"
+                  className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all active:scale-95"
                   title="Copy Address"
                 >
-                   {copied ? <Check className="w-5 h-5 text-green-600" /> : <Copy className="w-5 h-5 text-gray-600" />}
+                   {copied ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5 text-muted-foreground" />}
                 </button>
             </div>
         </div>
 
         {/* TX HASH INPUT */}
-        <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Transaction Hash (TXID)</label>
+        <div className="space-y-4 mb-10">
+            <label className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] px-1 pointer-events-none">Enter Transaction TXID / Hash</label>
             <input 
               type="text" 
-              placeholder="Paste the transaction hash here..."
+              placeholder="e.g. 0x5a1b2c3d..."
               value={txHash}
               onChange={(e) => setTxHash(e.target.value)}
-              className="w-full p-4 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black/20"
+              className="w-full bg-black/40 p-4 rounded-2xl border border-white/10 focus:outline-none focus:ring-2 focus:ring-accent/20 text-sm font-mono placeholder:text-muted-foreground/30 transition-all"
             />
         </div>
 
         {error && (
-            <p className="mt-4 text-center text-sm text-red-500 bg-red-50 p-2 rounded-lg">{error}</p>
+            <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-center text-xs font-bold text-red-500 animate-shake">
+                {error}
+            </div>
         )}
 
         <button
             onClick={handleManualVerify}
-            disabled={isLoading}
-            className="w-full mt-6 py-4 bg-black text-white rounded-2xl text-lg font-bold hover:bg-black/90 transition disabled:opacity-50"
+            disabled={isLoading || !txHash}
+            className="w-full py-5 bg-accent text-accent-foreground rounded-[1.5rem] text-sm font-black uppercase tracking-widest shadow-xl shadow-accent/20 hover:shadow-accent/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
         >
-            {isLoading ? "Verifying..." : "I Have Sent The Funds"}
+            {isLoading ? "Verifying Transaction..." : "Synchronize Payment"}
         </button>
+
+        <p className="mt-8 text-center text-[10px] font-medium text-muted-foreground/40 leading-relaxed uppercase tracking-tighter">
+            Crypto assets are subject to market risk. <br /> Account will be automatically upgraded upon confirmation.
+        </p>
 
       </div>
     </div>

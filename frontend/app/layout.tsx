@@ -1,10 +1,12 @@
 import { Toaster } from "sonner";
+import { Providers } from "../components/providers";
+import { GlobalAssistantBot } from "@/components/global-assistant-bot";
 import "./globals.css";
 
 export const metadata = {
-  title: "KRO - AI Trading Assistant",
+  title: "NEURAL FLOW - Institutional AI Trading",
   description:
-    "The fastest and secure AI trading assistant. Trade faster and smarter with our secure AI bots.",
+    "The world's most advanced AI-driven trading ecosystem. Execute data-backed strategies with institutional precision and secure automation.",
 };
 
 export default function RootLayout({
@@ -18,8 +20,11 @@ export default function RootLayout({
         suppressHydrationWarning
         className="min-h-screen bg-background text-foreground antialiased"
       >
-        {children}
-        <Toaster position="top-center" richColors />
+        <Providers>
+            {children}
+            <Toaster position="top-center" richColors />
+            <GlobalAssistantBot />
+        </Providers>
       </body>
     </html>
   );
