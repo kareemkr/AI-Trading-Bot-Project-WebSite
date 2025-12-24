@@ -40,6 +40,7 @@ import time
 import sqlite3
 import random
 import asyncio
+import feedparser
 import logging
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
@@ -51,6 +52,10 @@ import numpy as np
 import feedparser  # For Google News proxy
 from dotenv import load_dotenv
 from app.services.telegram_service import telegram_ai
+from app.database.session import AsyncSessionLocal
+from app.models.bot import Signal as SignalModel
+from sqlalchemy import select, update
+from dateutil import parser as date_parser
 
 # Load env variables for API keys
 load_dotenv()
@@ -204,89 +209,60 @@ class Event:
 # -----------------------------
 # SQLite persistence
 # -----------------------------
-class SQLiteStore:
+class PostgresStore:
     """
-    Lightweight SQLite persistence.
-    - Uses one connection (check_same_thread=False) + async Lock for safe concurrent inserts.
-    - WAL mode for better write concurrency.
+    Refactored persistence layer using PostgreSQL and SQLAlchemy.
     """
-    def __init__(self, path: str = "signals_v2.db"):
-        self.path = path
-        self._conn = sqlite3.connect(self.path, check_same_thread=False)
-        self._conn.execute("PRAGMA journal_mode=WAL;")
-        self._conn.execute("PRAGMA synchronous=NORMAL;")
+    def __init__(self):
         self._lock = asyncio.Lock()
-        self._init_schema()
-
-    def _init_schema(self):
-        self._conn.execute("""
-        CREATE TABLE IF NOT EXISTS events (
-            id TEXT PRIMARY KEY,
-            type TEXT,
-            source TEXT,
-            created_at TEXT,
-            received_at TEXT,
-            title TEXT,
-            content TEXT,
-            url TEXT,
-            heuristic_score REAL,
-            engagement REAL,
-            engagement_mult REAL,
-            weighted_impact REAL,
-            account TEXT,
-            category TEXT,
-            scope TEXT,
-            targets_json TEXT,
-            raw_json TEXT
-        );
-        """)
-        self._conn.execute("""
-        CREATE TABLE IF NOT EXISTS snapshots (
-            ts TEXT PRIMARY KEY,
-            global_sentiment REAL,
-            global_signal TEXT,
-            coin_bias_json TEXT
-        );
-        """)
-        self._conn.commit()
 
     async def insert_events(self, events: List[Event]) -> None:
         if not events:
             return
-        rows = []
-        for e in events:
-            rows.append((
-                e.id, e.type, e.source, e.created_at, e.received_at,
-                e.title, e.content, e.url,
-                float(e.heuristic_score), float(e.engagement), float(e.engagement_mult), float(e.weighted_impact),
-                e.account, e.category, e.scope,
-                json.dumps(e.targets or []),
-                json.dumps(e.raw or {})
-            ))
+        
+        async with AsyncSessionLocal() as db:
+            async with self._lock:
+                for e in events:
+                    # Parse dates safely
+                    try:
+                        c_at = date_parser.parse(e.created_at) if e.created_at else utc_now()
+                        r_at = date_parser.parse(e.received_at) if e.received_at else utc_now()
+                    except:
+                        c_at = r_at = utc_now()
 
-        async with self._lock:
-            self._conn.executemany("""
-                INSERT OR IGNORE INTO events (
-                    id, type, source, created_at, received_at,
-                    title, content, url,
-                    heuristic_score, engagement, engagement_mult, weighted_impact,
-                    account, category, scope,
-                    targets_json, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-            """, rows)
-            self._conn.commit()
+                    stmt = select(SignalModel).where(SignalModel.id == e.id)
+                    existing = await db.execute(stmt)
+                    if existing.scalar_one_or_none():
+                        continue
+
+                    sig = SignalModel(
+                        id=e.id,
+                        type=e.type,
+                        source=e.source,
+                        created_at=c_at,
+                        received_at=r_at,
+                        title=e.title,
+                        content=e.content,
+                        url=e.url,
+                        heuristic_score=float(e.heuristic_score),
+                        engagement=float(e.engagement),
+                        weighted_impact=float(e.weighted_impact),
+                        account=e.account,
+                        category=e.category,
+                        scope=e.scope,
+                        targets=e.targets,
+                        raw=e.raw
+                    )
+                    db.add(sig)
+                await db.commit()
 
     async def insert_snapshot(self, ts: str, global_sentiment: float, global_signal: str, coin_bias: Dict[str, float]) -> None:
-        async with self._lock:
-            self._conn.execute("""
-                INSERT OR REPLACE INTO snapshots (ts, global_sentiment, global_signal, coin_bias_json)
-                VALUES (?, ?, ?, ?);
-            """, (ts, float(global_sentiment), global_signal, json.dumps(coin_bias)))
-            self._conn.commit()
+        # In a full-real DB, we could store periodic snapshots in a dedicated table.
+        # For now, we focus on Signal persistence as it's the core data.
+        pass
 
     async def close(self) -> None:
-        async with self._lock:
-            self._conn.close()
+        pass
 
 
 # -----------------------------
@@ -312,7 +288,7 @@ class XClient:
             headers=self._headers,
             timeout=httpx.Timeout(10.0, connect=3.0),
             limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
-            http2=True,
+            http2=False,
         )
         self._username_to_id: Dict[str, str] = {}
         self._since_id: Dict[str, str] = {}
@@ -392,8 +368,44 @@ class CryptoCompareNews:
 
         url = f"{self.BASE_URL}/data/v2/news/"
         resp = await request_with_retries(self.http, "GET", url, params=params)
-        items = (resp.json().get("Data") or [])[:limit]
-        return items
+# -----------------------------
+# Yahoo Finance RSS fetcher
+# -----------------------------
+class YahooFinanceNews:
+    RSS_URLS = {
+        "BTC": "https://finance.yahoo.com/rss/headline?s=BTC-USD",
+        "ETH": "https://finance.yahoo.com/rss/headline?s=ETH-USD",
+        "SOL": "https://finance.yahoo.com/rss/headline?s=SOL-USD",
+        "DOGE": "https://finance.yahoo.com/rss/headline?s=DOGE-USD",
+        "COIN": "https://finance.yahoo.com/rss/headline?s=COIN", # Coinbase stock as proxy
+    }
+
+    def __init__(self):
+        pass
+
+    async def fetch_latest(self) -> List[dict]:
+        """Async fetch of RSS feeds using executor since feedparser is blocking"""
+        loop = asyncio.get_event_loop()
+        all_items = []
+        
+        for coin, url in self.RSS_URLS.items():
+            try:
+                # Run feedparser in thread pool to avoid blocking async loop
+                feed = await loop.run_in_executor(None, feedparser.parse, url)
+                
+                for entry in feed.entries[:5]: # Top 5 per coin
+                    all_items.append({
+                        "title": entry.title,
+                        "link": entry.link,
+                        "published": entry.published if hasattr(entry, 'published') else iso_now(),
+                        "summary": entry.summary if hasattr(entry, 'summary') else "",
+                        "source": "YahooFinance",
+                        "coin_tag": coin
+                    })
+            except Exception as e:
+                log.warning(f"Yahoo RSS error for {coin}: {e}")
+                
+        return all_items
 
 
 # -----------------------------
@@ -403,6 +415,7 @@ class CryptoCompareNews:
 class EngineConfig:
     # polling (FREE-TIER SAFE)
     news_poll_s: float = 900.0    # 15 min for news (CryptoCompare = unlimited)
+    yahoo_poll_s: float = 300.0   # 5 min for Yahoo Finance (RSS)
     x_poll_s: float = 3600.0      # 1 HOUR for X (CRITICAL: free tier = 50 calls/day max)
 
     # decay: time for signal to halve back toward neutral (0.5)
@@ -459,31 +472,7 @@ class SignalEngine:
 
         # Caches
         self.cached_news: List[dict] = []
-        self.alpha_events: List[dict] = [
-            {
-                "type": "SOCIAL_SIGNAL",
-                "account": "Whale_Alert",
-                "content": "$500M BTC outflow from Coinbase - Institutional accumulation detected.",
-                "category": "WHALE_MOVEMENT",
-                "heuristic": 0.85,
-                "created_at": iso_now()
-            },
-            {
-                "type": "SOCIAL_SIGNAL",
-                "account": "saylor",
-                "content": "MicroStrategy acquires additional 12,000 BTC. Bitcoin is the signal.",
-                "category": "ELITE_ALPHA",
-                "heuristic": 0.95,
-                "created_at": iso_now()
-            },
-            {
-                "type": "NEWS",
-                "title": "Institutional ETF inflow reaches record highs this quarter.",
-                "source": "Bloomberg",
-                "sentiment": 0.75,
-                "created_at": iso_now()
-            }
-        ]
+        self.alpha_events: List[dict] = []
 
         # Dedup
         self.seen_news = LRUSet(max_size=12000)
@@ -540,11 +529,14 @@ class SignalEngine:
         self.http = httpx.AsyncClient(
             timeout=httpx.Timeout(8.0, connect=3.0),
             limits=httpx.Limits(max_connections=30, max_keepalive_connections=15),
-            http2=True,
+            http2=False,
         )
 
         # CryptoCompare
         self.cc = CryptoCompareNews(self.http, api_key=os.getenv("CRYPTOCOMPARE_API_KEY"))
+
+        # Yahoo Finance
+        self.yf = YahooFinanceNews()
 
         # X client (optional)
         self.x: Optional[XClient] = None
@@ -554,11 +546,8 @@ class SignalEngine:
         else:
             log.warning("X_BEARER_TOKEN not set -> X ingestion disabled.")
 
-        # Event bus
-        self.event_q: asyncio.Queue[Event] = asyncio.Queue(maxsize=self.cfg.queue_maxsize)
-
         # Persistence
-        self.store = SQLiteStore(self.cfg.sqlite_path)
+        self.store = PostgresStore()
 
         # Shutdown
         self._stop = asyncio.Event()
@@ -1131,12 +1120,78 @@ class SignalEngine:
             except Exception:
                 pass
 
+
+    async def _produce_yahoo(self):
+        """Producer: Yahoo Finance RSS"""
+        while not self._stop.is_set():
+            try:
+                # 1. Fetch
+                log.info("Fetching Yahoo Finance RSS...")
+                items = await self.yf.fetch_latest()
+                
+                # 2. Convert to Events
+                buffer = []
+                for item in items:
+                    link = item.get("link", "")
+                    # Dedup by link
+                    if link in self.seen_news:
+                        continue
+                    self.seen_news.add(link)
+
+                    # Score text
+                    text = f"{item.get('title')} {item.get('summary')}"
+                    score = self.scorer.score(text)
+                    
+                    # Normalize 'coin_tag' to target list
+                    targets = [item.get("coin_tag", "MARKET")]
+                    
+                    ev = Event(
+                        id=link,
+                        type="NEWS",
+                        source="YahooFinance",
+                        created_at=item.get("published"),
+                        received_at=iso_now(),
+                        title=item.get("title"),
+                        content=item.get("summary"),
+                        url=link,
+                        heuristic_score=score,
+                        engagement=0.0, # RSS has no engagement metrics
+                        targets=targets
+                    )
+                    buffer.append(ev)
+
+                # 3. Ingest
+                if buffer:
+                    log.info(f"Ingesting {len(buffer)} items from Yahoo Finance")
+                    # Apply impact immediately
+                    for e in buffer:
+                        self.cached_news.insert(0, asdict(e))
+                        # Keep cache small
+                        if len(self.cached_news) > self.cfg.max_cached_news:
+                            self.cached_news.pop()
+                            
+                        # Apply sentiment impact
+                        self._apply_news_impact(e.heuristic_score)
+                    
+                    # Store DB
+                    try:
+                        await self.store.insert_events(buffer)
+                    except: pass
+                    
+            except Exception as e:
+                log.warning(f"Yahoo producer error: {e}")
+
+            # Sleep
+            await asyncio.sleep(self.cfg.yahoo_poll_s)
+
     # -------------------------
     # Public: run engine
     # -------------------------
     async def run(self):
         tasks = [
             asyncio.create_task(self._produce_news(), name="producer_news"),
+            asyncio.create_task(self._produce_yahoo(), name="producer_yahoo"),
+            asyncio.create_task(self._produce_x(), name="producer_x"),
             asyncio.create_task(self._produce_x(), name="producer_x"),
             asyncio.create_task(self._consume_events(), name="consumer"),
         ]

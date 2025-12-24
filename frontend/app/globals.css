@@ -1,56 +1,109 @@
 @import "tailwindcss";
-
-@plugin "tailwindcss-animate";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
-/* Custom dark teal/green theme for trading app */
 :root {
-  /* LIGHT MODE (Institutional Off-White) */
-  --background: #f2f4f3;
-  --foreground: #0d1a17;
-  --card: #ebefee;
-  --card-foreground: #0d1a17;
-  --popover: #ebefee;
-  --popover-foreground: #0d1a17;
-  --primary: #0d1a17;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f3;
-  --secondary-foreground: #0d1a17;
-  --muted: #f1f5f3;
-  --muted-foreground: #64748b;
-  --accent: #10b981; /* Slighly deeper green for visibility on white */
-  --accent-foreground: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #10b981;
-
-  --radius: 1rem;
+  /* Crisp Executive - High Contrast Light Mode */
+  --background: oklch(92.587% 0.00336 147.008 / 0.503);   /* Off-White / Cloud Grey */
+  --foreground: oklch(44.226% 0.00005 271.152);   /* Softened Black for easier reading */
+  --card: oklch(1 0 0);                 /* Pure White Cards */
+  --card-foreground: oklch(0 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0 0 0);
+  
+  /* Primary Action */
+  --primary: oklch(0 0 0);              /* Black Actions (very chic) */
+  --primary-foreground: oklch(1 0 0);
+  
+  /* Secondary Surfaces */
+  --secondary: oklch(0.96 0 0);         /* Very Light Grey */
+  --secondary-foreground: oklch(0 0 0);
+  
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.45 0 0);
+  
+  /* Accent */
+  --accent: oklch(0.96 0 0);       
+  --accent-foreground: oklch(0 0 0);
+  
+  --destructive: oklch(0.5 0.20 25);
+  --destructive-foreground: oklch(1 0 0);
+  
+  --border: oklch(0.92 0 0);
+  --input: oklch(0.92 0 0);
+  --ring: oklch(0 0 0);
+  
+  /* Data Viz */
+  --chart-1: oklch(0.5 0.20 150);
+  --chart-2: oklch(0.4 0.20 250);
+  --chart-3: oklch(0.6 0.15 60);
+  --chart-4: oklch(0.5 0.20 300);
+  --chart-5: oklch(0.5 0.20 20);
+  
+  --radius: 0.5rem;
+  
+  --sidebar: oklch(0.98 0 0);
+  --sidebar-foreground: oklch(0 0 0);
+  --sidebar-primary: oklch(0 0 0);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.96 0 0);
+  --sidebar-accent-foreground: oklch(0 0 0);
+  --sidebar-border: oklch(0.92 0 0);
+  --sidebar-ring: oklch(0 0 0);
 }
 
 .dark {
-  /* DARK MODE (Neural Teal) */
-  --background: #0d1a17;
-  --foreground: #f0f7f4;
-  --card: #142420;
-  --card-foreground: #f0f7f4;
-  --popover: #142420;
-  --popover-foreground: #f0f7f4;
-  --primary: #f0f7f4;
-  --primary-foreground: #0d1a17;
-  --secondary: #1d332d;
-  --secondary-foreground: #f0f7f4;
-  --muted: #1d332d;
-  --muted-foreground: #a3c4b6;
-  --accent: #3dd68c;
-  --accent-foreground: #0d1a17;
-  --border: rgba(255, 255, 255, 0.05);
-  --input: rgba(255, 255, 255, 0.05);
-  --ring: #3dd68c;
+  /* Deep Navy Slate - Softer, Professional Dark Mode */
+  --background: oklch(28.984% 0.03993 256.248 / 0.36);   /* Deep Navy (Not Black) */
+  --foreground: oklch(0.98 0.01 240);
+  --card: oklch(0.19 0.04 250);         /* Lighter Blue-Grey Panel */
+  --card-foreground: oklch(0.98 0.01 240);
+  --popover: oklch(0.14 0.03 250);
+  --popover-foreground: oklch(0.98 0.01 240);
+  
+  /* Primary Action: Vivid Emerald */
+  --primary: oklch(0.65 0.22 150);      
+  --primary-foreground: oklch(0.10 0.005 240);
+  
+  /* Secondary: Lighter Slate */
+  --secondary: oklch(0.25 0.05 250);
+  --secondary-foreground: oklch(0.98 0.00 0);
+  
+  --muted: oklch(0.25 0.05 250);
+  --muted-foreground: oklch(0.70 0.03 250);
+  
+  /* Accent: Electric Green */
+  --accent: oklch(0.65 0.22 150);       
+  --accent-foreground: oklch(0.10 0.005 240);
+  
+  --destructive: oklch(0.50 0.20 25);
+  --destructive-foreground: oklch(0.98 0.00 0);
+  
+  --border: oklch(0.25 0.04 250);       /* Softer borders */
+  --input: oklch(0.25 0.04 250);
+  --ring: oklch(0.65 0.22 150);
+  
+  /* Data Viz */
+  --chart-1: oklch(0.65 0.22 150); 
+  --chart-2: oklch(0.60 0.20 250); 
+  --chart-3: oklch(0.75 0.15 60);  
+  --chart-4: oklch(0.65 0.20 300); 
+  --chart-5: oklch(0.65 0.20 20);  
+  
+  --sidebar: oklch(0.12 0.03 250);      /* Slightly darker than main bg */
+  --sidebar-foreground: oklch(0.95 0.01 240);
+  --sidebar-primary: oklch(0.65 0.22 150);
+  --sidebar-primary-foreground: oklch(0.98 0.00 0);
+  --sidebar-accent: oklch(0.20 0.04 250);
+  --sidebar-accent-foreground: oklch(0.98 0.00 0);
+  --sidebar-border: oklch(0.20 0.03 250);
+  --sidebar-ring: oklch(0.65 0.22 150);
 }
 
 @theme inline {
+  --font-sans: "Geist", "Geist Fallback";
+  --font-mono: "Geist Mono", "Geist Mono Fallback";
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -93,62 +146,91 @@
   * {
     @apply border-border outline-ring/50;
   }
-
   body {
-    @apply bg-background text-foreground antialiased;
-    font-feature-settings: "ss01", "ss03", "cv08", "cv11";
-  }
-
-  /* Premium Scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: rgba(61, 214, 140, 0.1);
-    border-radius: 10px;
-    transition: background 0.3s;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: rgba(61, 214, 140, 0.3);
-  }
-
-  /* Selection Color */
-  ::selection {
-    background: rgba(61, 214, 140, 0.2);
-    color: #3dd68c;
+    @apply bg-background text-foreground;
   }
 }
 
-/* Glassmorphism Utilities */
-.glass {
-  @apply bg-white/[0.05] backdrop-blur-2xl border border-white/10;
+/* Added professional styling utilities and animations */
+@layer utilities {
+  .shadow-soft {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+
+  .shadow-elevated {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  .shadow-accent {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+  }
+
+  .dark .shadow-accent {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+  }
+
+  .glass {
+    @apply bg-background/40 backdrop-blur-xl border border-border/40;
+  }
+
+  .glass-accent {
+    @apply bg-accent/5 backdrop-blur-xl border border-accent/20;
+  }
+
+  .glass-dark {
+    @apply bg-card/50 backdrop-blur-md border border-border/50;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent to-emerald-400;
+  }
 }
 
-.glass-accent {
-  @apply bg-accent/10 backdrop-blur-2xl border border-accent/30;
+@keyframes glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
-.text-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-accent via-white to-emerald-400;
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Custom animations */
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes fade-in-slow {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-.animate-spin-slow {
-  animation: spin-slow 8s linear infinite;
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out;
+}
+
+.animate-fade-in-slow {
+  animation: fade-in-slow 0.8s ease-out;
 }
 
 .dark option {
-  background-color: #142420;
-  color: #f0f7f4;
+  background-color: #111829;
+  color: #f0f4f8;
 }
 
 .dark select {

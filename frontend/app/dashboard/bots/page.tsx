@@ -212,7 +212,7 @@ export default function BotsPage() {
   }, []);
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-[#030706] relative overflow-hidden">
+    <div className="flex h-[calc(100vh-64px)] bg-background dark:bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] dark:from-[#1e293b] dark:via-[#0f172a] dark:to-[#020617] relative overflow-hidden">
         {/* Institutional Glow Layers */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[120px] -z-0 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-500/5 rounded-full blur-[100px] -z-0 pointer-events-none" />
@@ -256,57 +256,78 @@ export default function BotsPage() {
         />
 
         {/* Neural Synergy Matrix */}
+        {/* Neural Synergy Matrix (High Intensity UI) */}
         {isBotRunning && (
-            <div className="px-6 py-4 bg-black/40 backdrop-blur-md border-b border-white/5 animate-in fade-in slide-in-from-top-4 duration-500 relative z-10 w-full">
-                <div className="flex flex-col md:flex-row items-center gap-6 justify-between max-w-7xl mx-auto">
-                    <div className="flex items-center gap-8 flex-1 w-full md:w-auto">
+            <div className="px-8 py-6 bg-card/30 backdrop-blur-xl border-b border-white/5 animate-in fade-in slide-in-from-top-4 duration-500 relative z-10 w-full shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)]">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 animate-pulse pointer-events-none" />
+                
+                <div className="flex flex-col md:flex-row items-center gap-10 justify-between max-w-7xl mx-auto relative">
+                    <div className="flex items-center gap-10 flex-1 w-full md:w-auto">
+                        
                         {/* CHART ENGINE Indicator */}
-                        <div className="flex flex-col gap-2 flex-1">
+                        <div className="flex flex-col gap-3 flex-1 group/chart cursor-default">
                             <div className="flex justify-between items-end">
-                                <span className="text-[9px] font-black uppercase text-accent tracking-[0.2em]">{t.bots.graph_conviction}</span>
-                                <span className="text-[10px] font-black text-white/50">{neuralState.ta}%</span>
+                                <span className="text-[10px] font-black uppercase text-accent tracking-[0.25em] flex items-center gap-2">
+                                    <Target className="w-3 h-3 animate-spin duration-[3000ms]" /> {t.bots.graph_conviction}
+                                </span>
+                                <span className="text-[12px] font-black text-white group-hover/chart:text-accent transition-colors">{neuralState.ta}%</span>
                             </div>
-                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full bg-accent shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000" style={{ width: `${neuralState.ta}%` }} />
+                            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 group-hover/chart:border-accent/30 transition-colors">
+                                <div className="h-full bg-accent shadow-[0_0_20px_rgba(16,185,129,0.6)] transition-all duration-1000 relative" style={{ width: `${neuralState.ta}%` }}>
+                                    <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite]" />
+                                </div>
                             </div>
                         </div>
 
-                        <div className="w-px h-8 bg-white/10 hidden md:block" />
+                        <div className="w-px h-12 bg-gradient-to-b from-transparent via-white/10 to-transparent hidden md:block" />
 
-                        {/* NEWS ENGINE Indicator */}
-                        <div className="flex flex-col gap-2 flex-1">
-                            <div className="flex justify-between items-end">
-                                <span className="text-[9px] font-black uppercase text-purple-400 tracking-[0.2em]">{t.bots.news_sentiment}</span>
-                                <span className="text-[10px] font-black text-white/50">{neuralState.signal || "NEUTRAL"}</span>
+                        {/* NEWS ENGINE Indicator (Interactive Gateway) */}
+                        <button 
+                            onClick={() => setIsSidebarOpen(true)}
+                            className="flex flex-col gap-3 flex-1 group/news cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all bg-transparent hover:bg-purple-500/5 p-2 -m-2 rounded-2xl"
+                        >
+                            <div className="flex justify-between items-end w-full">
+                                <span className="text-[10px] font-black uppercase text-purple-400 tracking-[0.25em] flex items-center gap-2 group-hover/news:text-purple-300 transition-colors">
+                                    <Zap className="w-3 h-3 group-hover/news:animate-pulse" /> {t.bots.news_sentiment} <span className="text-[7px] bg-purple-500/20 px-1.5 py-0.5 rounded text-purple-300 border border-purple-500/30">CLICK TO VIEW</span>
+                                </span>
+                                <span className="text-[12px] font-black text-white group-hover/news:text-purple-400 transition-colors">{neuralState.signal || "NEUTRAL"}</span>
                             </div>
-                            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)] transition-all duration-1000" style={{ width: `${neuralState.news}%` }} />
+                            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5 group-hover/news:border-purple-500/30 transition-colors">
+                                <div className="h-full bg-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.6)] transition-all duration-1000 relative" style={{ width: `${neuralState.news}%` }}>
+                                    <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite]" />
+                                </div>
                             </div>
-                        </div>
+                        </button>
                     </div>
 
-                    <div className="flex items-center gap-4 bg-white/5 px-4 py-2.5 rounded-2xl border border-white/10 shadow-inner group">
-                        <div className="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                    <div className="flex items-center gap-6 bg-white/[0.03] px-6 py-4 rounded-2xl border border-white/5 shadow-2xl backdrop-blur-md group hover:bg-white/[0.05] transition-all hover:border-white/10">
+                        <div className="relative">
+                            <div className="w-3 h-3 rounded-full bg-accent animate-pulse shadow-[0_0_15px_rgba(16,185,129,1)]" />
+                            <div className="absolute inset-0 bg-accent rounded-full animate-ping opacity-20" />
+                        </div>
+                        
                         <div className="flex flex-col">
-                            <span className="text-[8px] font-black uppercase text-accent/70 tracking-[0.2em]">{t.bots.global_session}</span>
-                            <span className="text-[11px] font-black uppercase italic tracking-tighter text-white">
+                            <span className="text-[9px] font-black uppercase text-accent/70 tracking-[0.2em] mb-0.5">{t.bots.global_session}</span>
+                            <span className="text-[13px] font-black uppercase italic tracking-tighter text-white drop-shadow-[0_2px_10px_rgba(255,255,255,0.1)]">
                                 {neuralState.session.replace(/_/g, " ")}
                             </span>
                         </div>
-                        <div className="w-px h-6 bg-white/10 mx-1" />
-                        <div className="flex flex-col">
-                            <span className="text-[8px] font-black uppercase text-purple-400/70 tracking-[0.2em]">{t.bots.neural_synergy}</span>
-                            <span className="text-[11px] font-black uppercase italic tracking-tighter text-purple-400 group-hover:text-purple-300 transition-colors">
+                        
+                        <div className="w-px h-8 bg-white/10 mx-2" />
+                        
+                        <div className="flex flex-col items-end">
+                            <span className="text-[9px] font-black uppercase text-purple-400/70 tracking-[0.2em] mb-0.5">{t.bots.neural_synergy}</span>
+                            <span className="text-[13px] font-black uppercase italic tracking-tighter text-purple-400 group-hover:text-purple-300 transition-colors drop-shadow-[0_0_10px_rgba(168,85,247,0.3)]">
                                 {neuralState.news > 70 ? t.bots.high_conviction : t.bots.analyzing}
                             </span>
                         </div>
-                        <Sparkles className="w-4 h-4 text-accent ml-2 group-hover:rotate-12 transition-transform" />
+                        <Sparkles className="w-5 h-5 text-accent ml-2 group-hover:rotate-12 group-hover:scale-110 transition-all duration-500" />
                     </div>
                 </div>
             </div>
         )}
         {/* Live Controls Bar */}
-        <div className="bg-[#0a0f0d]/60 backdrop-blur-xl border-b border-white/5 px-4 md:px-8 py-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 md:gap-8 relative z-10 w-full">
+        <div className="bg-background/80 backdrop-blur-xl border-b border-white/5 px-4 md:px-8 py-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 md:gap-8 relative z-10 w-full">
           <div className="flex flex-wrap items-center justify-between md:justify-start gap-4 md:gap-10">
               <div className="flex items-center gap-4">
                   {!isElite ? (
@@ -326,7 +347,7 @@ export default function BotsPage() {
                           <button 
                               disabled={isStarting}
                               onClick={handleStartBot} 
-                              className="flex items-center gap-2 px-5 py-2.5 bg-accent/10 text-accent rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-accent/20 transition-all border border-accent/30 disabled:opacity-50 group shadow-lg shadow-accent/5"
+                              className="flex items-center gap-2 px-5 py-2.5 bg-primary/10 text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all border border-primary/30 disabled:opacity-50 group shadow-lg shadow-primary/5"
                           >
                               {isStarting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current opacity-70 group-hover:opacity-100" />} {t.bots.initialize}
                           </button>
@@ -334,16 +355,16 @@ export default function BotsPage() {
                     </>
                   )}
               </div>
-              <div className="flex items-center gap-4 ml-auto md:ml-0 bg-white/5 px-4 py-1.5 rounded-xl border border-white/5">
+              <div className="flex items-center gap-4 ml-auto md:ml-0 bg-secondary/50 dark:bg-white/5 px-4 py-1.5 rounded-xl border border-border dark:border-white/5">
                   <div className="flex flex-col items-start hidden sm:flex">
-                      <span className="text-[7px] font-black uppercase text-white/30 tracking-[0.4em] mb-1">{t.bots.leverage_proto}</span>
+                      <span className="text-[7px] font-black uppercase text-muted-foreground dark:text-white/30 tracking-[0.4em] mb-1">{t.bots.leverage_proto}</span>
                       <div className="flex items-center gap-2">
-                          <Target className="w-3.5 h-3.5 text-accent/60" />
+                          <Target className="w-3.5 h-3.5 text-primary/60 dark:text-accent/60" />
                           <select 
                               disabled={isBotRunning || !isElite}
                               value={leverage} 
                               onChange={(e) => setLeverage(Number(e.target.value))}
-                              className="bg-transparent border-0 rounded-lg text-xs font-black uppercase italic text-white/90 outline-none focus:ring-0 disabled:opacity-50 cursor-pointer p-0 select-none appearance-none"
+                              className="bg-transparent border-0 rounded-lg text-xs font-black uppercase italic text-foreground dark:text-white/90 outline-none focus:ring-0 disabled:opacity-50 cursor-pointer p-0 select-none appearance-none"
                           >
                               <option value={1}>1x_Standard</option>
                               <option value={5}>5x_Tactical</option>
@@ -355,22 +376,22 @@ export default function BotsPage() {
                   </div>
               </div>
           </div>
-          <div className="flex items-center justify-between md:justify-end gap-10 border-t md:border-t-0 border-white/5 pt-4 md:pt-0">
+          <div className="flex items-center justify-between md:justify-end gap-10 border-t md:border-t-0 border-border dark:border-white/5 pt-4 md:pt-0">
               <div className="flex flex-col items-start md:items-end group">
-                  <span className="text-[7px] font-black uppercase text-white/30 tracking-[0.4em] mb-1 group-hover:text-white/50 transition-colors">{t.bots.link_status}</span>
+                  <span className="text-[7px] font-black uppercase text-muted-foreground dark:text-white/30 tracking-[0.4em] mb-1 group-hover:text-foreground dark:group-hover:text-white/50 transition-colors">{t.bots.link_status}</span>
                   <div className="flex items-center gap-2.5">
                       <div className={cn("w-2 h-2 rounded-full", isBotRunning ? "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,1)] animate-pulse" : "bg-yellow-500 animate-pulse")} />
-                      <span className={`text-[10px] font-black uppercase italic tracking-wider ${isBotRunning ? "text-accent" : "text-yellow-500"}`}>
+                      <span className={`text-[10px] font-black uppercase italic tracking-wider ${isBotRunning ? "text-primary dark:text-accent" : "text-yellow-500"}`}>
                           {isElite ? (isBotRunning ? t.bots.operational : t.bots.awaiting_input) : t.bots.simulation_active}
                       </span>
                   </div>
               </div>
               <button 
                 onClick={() => isElite ? setIsSidebarOpen(true) : setIsSubOpen(true)}
-                className="group flex flex-col items-end text-accent"
+                className="group flex flex-col items-end text-primary dark:text-accent"
               >
-                  <span className="text-[7px] font-black uppercase tracking-[0.4em] mb-1 text-white/30 group-hover:text-accent transition-all">{t.bots.advanced_matrix}</span>
-                  <div className="flex items-center gap-2 bg-accent/5 px-3 py-1 rounded-lg border border-accent/10 group-hover:bg-accent/10 transition-all">
+                  <span className="text-[7px] font-black uppercase tracking-[0.4em] mb-1 text-muted-foreground dark:text-white/30 group-hover:text-primary dark:group-hover:text-accent transition-all">{t.bots.advanced_matrix}</span>
+                  <div className="flex items-center gap-2 bg-primary/5 dark:bg-accent/5 px-3 py-1 rounded-lg border border-primary/10 dark:border-accent/10 group-hover:bg-primary/10 dark:group-hover:bg-accent/10 transition-all">
                       <Sliders className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
                       <span className="text-[10px] font-black uppercase italic tracking-tighter">{t.bots.strategy_engine}</span>
                   </div>

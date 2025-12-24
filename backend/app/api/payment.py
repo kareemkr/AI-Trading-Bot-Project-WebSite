@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from app.api.auth import users_db
-
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database.session import get_db
+from app.crud.users import get_user_by_email
 from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/payment", tags=["Payment"])
@@ -14,12 +15,13 @@ class CryptoConfirmData(BaseModel):
     duration: str = "monthly"
 
 @router.post("/crypto-confirm")
-async def crypto_confirm(data: CryptoConfirmData):
+async def crypto_confirm(data: CryptoConfirmData, db: AsyncSession = Depends(get_db)):
     """
     Simulates checking the blockchain for tx_hash.
     In production, you'd verify the tx on-chain (Infura/Alchemy).
     """
-    if data.email not in users_db:
+    user = await get_user_by_email(db, data.email)
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
     # MOCK VERIFICATION: Ensure hash is long enough to be real
@@ -32,11 +34,13 @@ async def crypto_confirm(data: CryptoConfirmData):
     expiry = now + timedelta(days=days)
 
     # Update User
-    users_db[data.email]["subscription_status"] = data.plan_name.lower()
-    users_db[data.email]["wallet_address"] = data.wallet_address
-    users_db[data.email]["subscription_expiry"] = expiry.isoformat()
+    user.subscription_status = data.plan_name.lower()
+    user.wallet_address = data.wallet_address
+    user.subscription_expiry = expiry
+    
+    await db.commit()
 
     return {
         "message": f"Payment confirmed! Upgraded to {data.plan_name.capitalize()}.",
-        "subscription_status": data.plan_name.lower()
+        "subscription_status": user.subscription_status
     }

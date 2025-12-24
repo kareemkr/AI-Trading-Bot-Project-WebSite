@@ -1,36 +1,46 @@
-import sqlite3
 from datetime import datetime, timezone
-
-DB_PATH = "trades.db"
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.models.bot import BotTradeRecord
+from app.database.session import AsyncSessionLocal
+from decimal import Decimal
 
 class TradeSim:
-    def __init__(self):
-        self.db = sqlite3.connect(DB_PATH, check_same_thread=False)
-        self.db.execute("""
-        CREATE TABLE IF NOT EXISTS trades (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            coin TEXT,
-            action TEXT,
-            strength REAL,
-            sentiment REAL,
-            timestamp TEXT
-        );
-        """)
-        self.db.commit()
+    """
+    Handles background recording of trade signals and executions.
+    Refactored to use PostgreSQL via SQLAlchemy.
+    """
+    
+    async def record(self, coin: str, action: str, strength: float, sentiment: float, price: float = 0, qty: float = 0):
+        async with AsyncSessionLocal() as db:
+            trade = BotTradeRecord(
+                symbol=coin,
+                action=action,
+                strength=strength,
+                sentiment=sentiment,
+                price=Decimal(str(price)),
+                quantity=Decimal(str(qty)),
+                timestamp=datetime.now(timezone.utc)
+            )
+            db.add(trade)
+            await db.commit()
 
-    def record(self, coin, action, strength, sentiment):
-        self.db.execute(
-            "INSERT INTO trades (coin, action, strength, sentiment, timestamp) VALUES (?,?,?,?,?)",
-            (coin, action, strength, sentiment, datetime.now(timezone.utc).isoformat())
-        )
-        self.db.commit()
-
-    def last(self, n=10):
-        rows = self.db.execute(
-            "SELECT coin, action, strength, sentiment, timestamp FROM trades ORDER BY timestamp DESC LIMIT ?",
-            (n,)
-        ).fetchall()
-        return [
-            {"coin": r[0], "action": r[1], "strength": r[2], "sentiment": r[3], "timestamp": r[4]}
-            for r in rows
-        ]
+    async def last(self, n=20):
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(BotTradeRecord)
+                .order_by(BotTradeRecord.timestamp.desc())
+                .limit(n)
+            )
+            trades = result.scalars().all()
+            return [
+                {
+                    "coin": t.symbol,
+                    "action": t.action,
+                    "strength": t.strength,
+                    "sentiment": t.sentiment,
+                    "price": float(t.price) if t.price else 0,
+                    "timestamp": t.timestamp.isoformat()
+                }
+                for t in trades
+            ]

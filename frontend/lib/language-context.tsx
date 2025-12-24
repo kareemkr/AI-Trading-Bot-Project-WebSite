@@ -7,7 +7,6 @@ export type Language = "en" | "es" | "fr" | "de" | "ar";
 const translations = {
   en: {
     hero: {
-      badge: "Neural Flow Operational v4.2",
       title_line1: "Trade Like",
       title_line2: "The Machine.",
       subtitle: "I built Neural Flow to destroy the gap between retail and institutions. Consolidating Live Chart Intelligence and Real-time News Sentiment into a single, automated protocol.",
@@ -32,7 +31,9 @@ const translations = {
         settings: "Settings",
         site_home: "Site Home",
         trade: "Trade",
-        profile: "Profile"
+        profile: "Profile",
+        wallet: "Wallet",
+        logs: "Logs"
     },
     sidebar: {
         command_center: "Command Center",
@@ -160,7 +161,6 @@ const translations = {
   },
   es: {
     hero: {
-      badge: "Neural Flow Operativo v4.2",
       title_line1: "Opera Como",
       title_line2: "La Máquina.",
       subtitle: "Construí Neural Flow para destruir la brecha entre minoristas e instituciones. Consolidando Inteligencia de Gráficos y Sentimiento de Noticias en tiempo real.",
@@ -185,7 +185,9 @@ const translations = {
         settings: "Ajustes",
         site_home: "Inicio",
         trade: "Operar",
-        profile: "Perfil"
+        profile: "Perfil",
+        wallet: "Billetera",
+        logs: "Registros"
     },
     sidebar: {
         command_center: "Centro de Comando",
@@ -313,7 +315,6 @@ const translations = {
   },
   fr: {
     hero: {
-      badge: "Neural Flow Opérationnel v4.2",
       title_line1: "Tradez Comme",
       title_line2: "La Machine.",
       subtitle: "J'ai créé Neural Flow pour combler le fossé entre les particuliers et les institutions. Consolidation de l'analyse graphique et du sentiment d'actualité en temps réel.",
@@ -338,7 +339,9 @@ const translations = {
         settings: "Paramètres",
         site_home: "Accueil",
         trade: "Trader",
-        profile: "Profil"
+        profile: "Profil",
+        wallet: "Portefeuille",
+        logs: "Journaux"
     },
     sidebar: {
         command_center: "Centre de Commande",
@@ -466,7 +469,6 @@ const translations = {
   },
   de: {
     hero: {
-      badge: "Neural Flow Betriebsbereit v4.2",
       title_line1: "Handeln wie",
       title_line2: "Die Maschine.",
       subtitle: "Ich habe Neural Flow gebaut, um die Lücke zwischen Einzelhandel und Institutionen zu schließen. Konsolidierung von Live-Chart-Intelligence und Echtzeit-Nachrichtensentiment.",
@@ -491,7 +493,9 @@ const translations = {
         settings: "Einstellungen",
         site_home: "Startseite",
         trade: "Handeln",
-        profile: "Profil"
+        profile: "Profil",
+        wallet: "Brieftasche",
+        logs: "Protokolle"
     },
     sidebar: {
         command_center: "Kommandozentrale",
@@ -619,7 +623,6 @@ const translations = {
   },
   ar: {
     hero: {
-      badge: "نيورال فلو التشغيلي 4.2",
       title_line1: "تاجر مثل",
       title_line2: "الآلة.",
       subtitle: "لقد بنيت Neural Flow للقضاء على الفجوة بين الأفراد والمؤسسات. دمج ذكاء الرسوم البيانية الحية ومشاعر الأخبار في الوقت الفعلي في بروتوكول آلي واحد.",
@@ -644,7 +647,9 @@ const translations = {
         settings: "الإعدادات",
         site_home: "الرئيسية",
         trade: "تداول",
-        profile: "الملف الشخصي"
+        profile: "الملف الشخصي",
+        wallet: "المحفظة",
+        logs: "السجلات"
     },
     sidebar: {
         command_center: "مركز القيادة",

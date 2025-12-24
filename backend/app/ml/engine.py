@@ -12,6 +12,10 @@ import os
 import requests
 from app.services.news_service import news_ai
 from app.services.telegram_service import telegram_ai
+from app.services.wallet_service import wallet_service
+from app.database.session import AsyncSessionLocal
+from decimal import Decimal
+import asyncio
 
 def send_telegram_msg(token, chat_id, message):
     if not token or not chat_id:
@@ -293,7 +297,15 @@ class RealTradingBot:
                     news_multiplier = 0.1
                     logic_gate = "NEURAL_CONFLICT"
                     
-            self.log(f"🧠 Neural Analysis: {logic_gate} | Sentiment: {sentiment_pct}% | Session: {time_context}")
+            # PRODUCER-CONSUMER SYNERGY LOGGING
+            if logic_gate == "SYNERGY_BULLISH":
+                self.log(f"💎 BULLISH SYNERGY: TA and News both confirm LONG direction. Conviction Boost: 1.5x")
+            elif logic_gate == "SYNERGY_BEARISH":
+                self.log(f"💎 BEARISH SYNERGY: TA and News both confirm SHORT direction. Conviction Boost: 1.5x")
+            elif logic_gate == "NEURAL_CONFLICT":
+                self.log(f"⚠️ NEURAL CONFLICT: TA and News disagree for {symbol}. Suppressing signal for safety.")
+            
+            self.log(f"🧠 Neural Logic: {logic_gate} | Sentiment: {sentiment_pct}% | Session: {time_context}")
         
         final_score = ta_score * news_multiplier * time_multiplier
         price = float(last_row["close"].iloc[0])
@@ -316,30 +328,56 @@ class RealTradingBot:
             "signal": sig_type
         }
 
-    def place_trade(self, signal_data, telegram_config=None):
+    async def place_trade_async(self, signal_data, telegram_config=None):
         symbol = signal_data["symbol"]
+        
+        if signal_data["signal"] == "NEUTRAL":
+            self.log(f"💤 Signal for {symbol} is NEUTRAL. Skipping execution.")
+            return
+
         side = "BUY" if signal_data["signal"] == "LONG" else "SELL"
         price = signal_data["price"]
         
         self.log(f"🎯 Strategy Triggered for {symbol} ({side})")
         
-        # Quantity logic
-        balance = 50.0 # Hardcoded demo balance
-        risk_qty = (balance * 0.02) / signal_data["atr"] 
-        
+        # 1. Fetch real balance from PG
+        try:
+            async with AsyncSessionLocal() as db:
+                # We assume a default user_id=1 for now, in a real saas this would be user.id
+                wallet = await wallet_service.get_wallet(db, user_id=1) 
+                balance = float(wallet.balance)
+        except Exception as e:
+            self.log(f"❌ Wallet Error: {e}")
+            balance = 0.0
+
+        if balance <= 0:
+            self.log(f"🚫 Insufficient vault funds (Balance: {balance})")
+            return
+
+        # 2. Risk Management
+        risk_qty = (balance * 0.02) / (signal_data["atr"] or 0.01) 
         qty = round(risk_qty, 3) 
         if qty <= 0: 
             self.log(f"🚫 Trade too small for {symbol} (Qty: {qty})")
             return
         
+        # 3. Financial Lock (Phase 4)
+        trade_cost = Decimal(str(qty * price * 0.1)) # 10% collateral for futures? simplified
+        try:
+            async with AsyncSessionLocal() as db:
+                await wallet_service.lock_funds(db, user_id=1, amount=trade_cost)
+                self.log(f"🔒 Capital Locked: {trade_cost} USDT")
+        except Exception as e:
+            self.log(f"❌ Failed to lock funds: {e}")
+            return
+
         self.log(f"⚡ EVALUATING {side} PROTOCOL: {qty} {symbol} @ {price}")
         
         if self.is_virtual:
             self.log(f"🛡️ [SHADOW] Forwarding signal to virtual ledger (No real execution).")
-            # Record to Ledger (Step 15)
             try:
                 from app.main import sim
-                sim.record(symbol, side, signal_data.get("score", 1.0), news_ai.sentiment_score)
+                await sim.record(symbol, side, signal_data.get("score", 1.0), news_ai.sentiment_score, price=price, qty=qty)
             except: pass
             return
 
@@ -347,18 +385,25 @@ class RealTradingBot:
             self.client.futures_create_order(symbol=symbol, side=side, type="MARKET", quantity=qty)
             self.log(f"✨ SUCCESS: {side} order filled for {symbol}")
             
-            # Record to Ledger (Step 15)
             try:
                 from app.main import sim
-                sim.record(symbol, side, signal_data.get("score", 1.0), news_ai.sentiment_score)
+                await sim.record(symbol, side, signal_data.get("score", 1.0), news_ai.sentiment_score, price=price, qty=qty)
             except: pass
 
             if telegram_config:
-                asyncio.run(telegram_ai.send_signal_alert(symbol, side, news_ai.sentiment_score, 0.95))
+                await telegram_ai.send_signal_alert(symbol, side, news_ai.sentiment_score, 0.95)
         except Exception as e:
             self.log(f"❌ EXECUTION FAILED: {str(e)}")
+            # Rollback lock on failure
+            async with AsyncSessionLocal() as db:
+                await wallet_service.release_funds(db, user_id=1, amount=trade_cost, pnl=Decimal("0"))
+            
             if telegram_config:
                 send_telegram_msg(telegram_config.get("token"), telegram_config.get("chat_id"), f"❌ Trade Failed: {symbol} {side}\nError: {str(e)}")
+
+    def place_trade(self, signal_data, telegram_config=None):
+        """Sync wrapper for the async place_trade_async"""
+        asyncio.run(self.place_trade_async(signal_data, telegram_config))
 
     def set_leverage(self, leverage):
         if self.is_virtual:
@@ -430,7 +475,7 @@ class RealTradingBot:
                         best_score = sig["score"]
                         best_signal = sig
                 
-                if best_signal and abs(best_score) > 0.07:
+                if best_signal and abs(best_score) > 0.12:
                     self.log(f"💡 High-probability signal identified on {best_signal['symbol']}!")
                     self.place_trade(best_signal, telegram_config)
                 else:

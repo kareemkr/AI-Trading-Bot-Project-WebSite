@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowRight, Rocket, Zap, Globe, Shield } from "lucide-react";
+import { Rocket, Globe, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/language-context";
@@ -20,10 +20,7 @@ export function Hero({ onOpenSubscription }: HeroProps) {
       <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] -z-10 animate-pulse" />
       <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px] -z-10" />
       
-      <div className="mb-10 px-6 py-2 rounded-full border border-accent/20 bg-accent/5 backdrop-blur-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <Zap className="w-4 h-4 text-accent fill-accent animate-pulse" />
-        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-accent">{t.hero.badge}</span>
-      </div>
+      {/* Hero Badge Removed */}
 
       <h1 className="text-4xl md:text-5xl lg:text-7xl font-black text-foreground max-w-4xl leading-[0.9] tracking-tighter text-balance mb-6 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100 italic uppercase">
         {t.hero.title_line1}

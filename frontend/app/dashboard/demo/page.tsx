@@ -35,7 +35,7 @@ export default function DemoBotPage() {
 
   const addLog = (type: string, message: string, icon: string) => {
     const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setLogs(prev => [...prev.slice(-20), { id: Date.now(), type, message, icon, time }]);
+    setLogs(prev => [...prev.slice(-20), { id: `${Date.now()}-${Math.random()}`, type, message, icon, time }]);
   };
 
   const executeTrade = () => {
@@ -181,7 +181,6 @@ export default function DemoBotPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
-      {/* Header */}
       <div className="flex items-center justify-between bg-card/30 p-6 rounded-[2.5rem] border border-white/5 backdrop-blur-md shadow-sm">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
@@ -216,12 +215,97 @@ export default function DemoBotPage() {
           )}
           <button
             onClick={resetBot}
-            className="flex items-center gap-2 px-6 py-3 bg-white/5 border border-white/10 rounded-xl font-bold text-sm hover:bg-white/10 transition-all"
+            className="flex items-center gap-2 px-6 py-3 bg-secondary/50 border border-border/50 text-foreground rounded-xl font-bold text-sm hover:bg-secondary/70 transition-all"
           >
             <RotateCcw className="w-4 h-4" />
             {t.demo.reset}
           </button>
         </div>
+      </div>
+
+      {/* DEMO: Neural Synergy Matrix Simulation */}
+      <div className="rounded-[2rem] overflow-hidden relative border border-white/5 bg-card/20 backdrop-blur-sm p-8 group">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-accent/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 animate-pulse pointer-events-none" />
+         
+          <div className="flex flex-col md:flex-row items-center gap-12">
+             
+             {/* SIMULATED NEWS ENGINE */}
+             <div className="flex-1 w-full space-y-4">
+                 <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black uppercase text-purple-400 tracking-[0.25em] flex items-center gap-2">
+                        <Zap className="w-3 h-3 animate-pulse" /> News Sentiment Engine
+                    </span>
+                    <span className="text-[10px] bg-purple-500/10 text-purple-400 px-2 py-1 rounded border border-purple-500/20">SIMULATION</span>
+                 </div>
+                 
+                 <div className="space-y-2">
+                     <div className="flex justify-between text-xs font-bold text-muted-foreground">
+                         <span>BULLISH SIGNALS</span>
+                         <span className={isRunning ? "text-emerald-500 animate-pulse" : "text-muted-foreground"}>{isRunning ? "ACTIVE" : "OFFLINE"}</span>
+                     </div>
+                     <div className="h-4 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                         <div className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 transition-all duration-1000 relative" style={{ width: isRunning ? `${50 + Math.random() * 40}%` : '0%' }}>
+                              <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite]" />
+                         </div>
+                     </div>
+                 </div>
+                 
+                 <div className="grid grid-cols-2 gap-2 mt-4">
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-muted-foreground block uppercase mb-1">Last Analyzed Source</span>
+                        <div className="flex items-center gap-2 text-white font-bold text-sm">
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+                            X (Twitter)
+                        </div>
+                    </div>
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-muted-foreground block uppercase mb-1">Sentiment Score</span>
+                        <div className="text-emerald-400 font-bold text-sm">
+                            {isRunning ? "POSITIVE (0.76)" : "--"}
+                        </div>
+                    </div>
+                 </div>
+             </div>
+
+             <div className="w-px h-32 bg-gradient-to-b from-transparent via-white/10 to-transparent hidden md:block" />
+
+             {/* SIMULATED TECHNICALS */}
+             <div className="flex-1 w-full space-y-4">
+                 <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-black uppercase text-accent tracking-[0.25em] flex items-center gap-2">
+                        <Activity className="w-3 h-3 animate-spin duration-[5000ms]" /> Technical Confluence
+                    </span>
+                    <span className="text-[10px] bg-accent/10 text-accent px-2 py-1 rounded border border-accent/20">SIMULATION</span>
+                 </div>
+                 
+                 <div className="space-y-2">
+                     <div className="flex justify-between text-xs font-bold text-muted-foreground">
+                         <span>TREND STRENGTH</span>
+                         <span className={isRunning ? "text-accent animate-pulse" : "text-muted-foreground"}>{isRunning ? "STRONG BUY" : "OFFLINE"}</span>
+                     </div>
+                     <div className="h-4 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                         <div className="h-full bg-accent transition-all duration-700 relative" style={{ width: isRunning ? `${60 + Math.random() * 30}%` : '0%' }}>
+                              <div className="absolute inset-0 bg-white/20 animate-[shimmer_2s_infinite]" />
+                         </div>
+                     </div>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-2 mt-4">
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-muted-foreground block uppercase mb-1">RSI Status</span>
+                        <div className="text-white font-bold text-sm">
+                            {isRunning ? "45 (Neutral)" : "--"}
+                        </div>
+                    </div>
+                    <div className="bg-white/5 p-3 rounded-xl border border-white/5">
+                        <span className="text-[9px] text-muted-foreground block uppercase mb-1">Volume Delta</span>
+                        <div className="text-accent font-bold text-sm">
+                            {isRunning ? "+12.5%" : "--"}
+                        </div>
+                    </div>
+                 </div>
+             </div>
+          </div>
       </div>
 
       {/* Stats Grid */}

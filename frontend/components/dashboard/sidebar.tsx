@@ -12,7 +12,9 @@ import {
   Sparkles,
   ChevronRight,
   Globe,
-  Activity
+  Activity,
+  Wallet,
+  Terminal
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -44,16 +46,20 @@ export function DashboardSidebar({ onOpenSubscription }: SidebarProps) {
   const menuItems = [
     { name: t.nav.site_home, icon: Globe, href: "/" },
     { name: t.nav.overview, icon: LayoutDashboard, href: "/dashboard" },
+    { name: t.nav.wallet, icon: Wallet, href: "/dashboard/wallet" },
     { name: t.nav.live_bot, icon: Bot, href: "/dashboard/bots" },
     { name: t.nav.demo_bot, icon: Activity, href: "/dashboard/demo" },
     { name: t.nav.market, icon: LineChart, href: "/dashboard/market" },
+    { name: t.nav.logs, icon: Terminal, href: "/dashboard/logs" },
     { name: t.nav.subscription, icon: CreditCard, href: "/dashboard/subscription" },
     { name: t.nav.settings, icon: Settings, href: "/dashboard/settings" },
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    // Clear all application state to prevent data leakage between sessions
+    localStorage.clear();
+    sessionStorage.clear();
+    // Force reload to ensure memory state is also cleared
     window.location.href = "/";
   };
 

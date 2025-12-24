@@ -1,5 +1,8 @@
-import threading
 from datetime import datetime
+import asyncio
+import threading
+from app.database.session import AsyncSessionLocal
+from app.models.bot import BotLog
 
 
 class BotManager:
@@ -12,12 +15,33 @@ class BotManager:
     # -------------------------
     # Logging
     # -------------------------
-    def log(self, msg: str):
-        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        entry = f"[{timestamp}] {msg}"
+    def log(self, msg: str, level: str = "INFO"):
+        timestamp = datetime.utcnow()
+        entry = f"[{timestamp.strftime('%Y-%m-%d %H:%M:%S')}] {msg}"
         print(entry)
         self.logs.append(entry)
         self.logs = self.logs[-500:]
+        
+        # Persist to DB in background if loop is running
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(self._persist_log(msg, level))
+        except:
+            pass
+
+    async def _persist_log(self, message: str, level: str):
+        try:
+            async with AsyncSessionLocal() as db:
+                log_entry = BotLog(
+                    message=message,
+                    level=level,
+                    module="BotEngine"
+                )
+                db.add(log_entry)
+                await db.commit()
+        except:
+            pass
 
     # -------------------------
     # Set trading engine

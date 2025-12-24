@@ -59,13 +59,36 @@ export function ToolsSidebar({
   const [binanceSecret, setBinanceSecret] = useState("");
   const [alphaFeed, setAlphaFeed] = useState<any[]>([]);
 
-  const fetchAlpha = async () => {
+  // Fetch aggregated feed (News + Alpha)
+  const fetchFeed = async () => {
     try {
-      const res = await fetch("http://localhost:8000/news/alpha");
-      if (res.ok) {
-        const data = await res.json();
-        setAlphaFeed(data);
+      const [alphaRes, newsRes] = await Promise.all([
+        fetch("http://localhost:8000/news/alpha"),
+        fetch("http://localhost:8000/news/latest")
+      ]);
+
+      let combined: any[] = [];
+
+      if (alphaRes.ok) {
+        const alpha = await alphaRes.json();
+        combined = [...combined, ...alpha];
       }
+
+      if (newsRes.ok) {
+        const newsData = await newsRes.json();
+        if (newsData.news) {
+            combined = [...combined, ...newsData.news];
+        }
+      }
+
+      // Sort by creation time desc
+      combined.sort((a, b) => {
+        const tA = new Date(a.created_at || 0).getTime();
+        const tB = new Date(b.created_at || 0).getTime();
+        return tB - tA;
+      });
+
+      setAlphaFeed(combined);
     } catch (e) {}
   };
 
@@ -77,8 +100,8 @@ export function ToolsSidebar({
     }
     
     if (isOpen) {
-      fetchAlpha();
-      const interval = setInterval(fetchAlpha, 15000);
+      fetchFeed();
+      const interval = setInterval(fetchFeed, 15000);
       return () => clearInterval(interval);
     }
   }, [isOpen]);
@@ -192,34 +215,65 @@ export function ToolsSidebar({
             ))}
         </div>
 
-        {/* Live Alpha Stream (NEWS) */}
-        <div className="relative mt-6 p-4 rounded-2xl bg-purple-500/5 border border-purple-500/10 overflow-hidden">
-            <h3 className="text-xs font-black uppercase tracking-widest text-purple-400 mb-4 flex items-center gap-2">
-                <Newspaper className="w-3.5 h-3.5" /> High-Authority Feed
+        {/* Live Market Intelligence Feed */}
+        <div className="relative mt-6 p-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 overflow-hidden">
+            <h3 className="text-xs font-black uppercase tracking-widest text-indigo-400 mb-4 flex items-center gap-2">
+                <Newspaper className="w-3.5 h-3.5" /> Market Intelligence
             </h3>
             <div className="space-y-4">
                 {alphaFeed.length > 0 ? (
                     alphaFeed.map((news, i) => (
                         <div key={i} className="flex flex-col gap-2 pb-3 border-b border-white/5 last:border-0 group animate-in fade-in slide-in-from-right-2 duration-500">
+                            {/* Source Header */}
                             <div className="flex items-center justify-between">
-                                <span className="text-[9px] font-black text-white/40 uppercase tracking-widest group-hover:text-purple-400 transition-colors">@{news.account || "ANONYMOUS"}</span>
-                                <span className={cn(
-                                    "text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
-                                    news.category?.includes("ELITE") ? "bg-purple-500/20 text-purple-400" : 
-                                    news.category?.includes("WHALE") ? "bg-blue-500/20 text-blue-400" : 
-                                    news.category?.includes("INSTITUTIONAL") ? "bg-emerald-500/20 text-emerald-400" : "bg-white/10 text-white/40"
-                                )}>{news.category || "SIGNAL"}</span>
+                                <div className="flex items-center gap-1.5">
+                                    {/* Source Icon/Badge */}
+                                    {news.source === "YahooFinance" ? (
+                                        <span className="bg-[#720e9e] text-white text-[9px] font-black px-1.5 py-0.5 rounded tracking-tighter shadow-sm flex items-center gap-1">
+                                            Y! <span className="opacity-70 font-normal">Finance</span>
+                                        </span>
+                                    ) : news.platform === "X" || news.source === "X" ? (
+                                        <span className="bg-black text-white border border-white/20 text-[9px] font-black px-1.5 py-0.5 rounded tracking-tighter shadow-sm">
+                                            𝕏
+                                        </span>
+                                    ) : (
+                                        <span className="bg-orange-500/20 text-orange-400 text-[9px] font-black px-1.5 py-0.5 rounded tracking-tighter shadow-sm">
+                                            CC
+                                        </span>
+                                    )}
+                                    
+                                    {/* Account/Tag */}
+                                    {news.account && <span className="text-[9px] font-black text-white/40 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">@{news.account}</span>}
+                                    {news.coin_tag && <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider">#{news.coin_tag}</span>}
+                                </div>
+                                
+                                {/* Category Badge */}
+                                {(news.category || news.type === "NEWS") && (
+                                    <span className={cn(
+                                        "text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
+                                        news.category?.includes("ELITE") ? "bg-purple-500/20 text-purple-400" : 
+                                        news.category?.includes("WHALE") ? "bg-blue-500/20 text-blue-400" : 
+                                        news.type === "NEWS" ? "bg-white/10 text-white/50" :
+                                        "bg-emerald-500/20 text-emerald-400"
+                                    )}>{news.category || "HEADLINE"}</span>
+                                )}
                             </div>
-                            <p className="text-[10px] font-bold text-foreground leading-tight line-clamp-2">{news.content || news.title}</p>
+
+                            {/* Content */}
+                            <p className="text-[10px] font-bold text-foreground leading-tight line-clamp-3">
+                                {news.content || news.title || news.summary}
+                            </p>
+
+                            {/* Heuristic Bar */}
                             <div className="flex items-center gap-2">
                                 <div className="h-1 flex-1 bg-white/5 rounded-full overflow-hidden">
                                     <div 
-                                        className={cn("h-full transition-all duration-1000", news.heuristic > 0 ? "bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]")} 
-                                        style={{ width: `${Math.abs(news.heuristic) * 100}%` }} 
+                                        className={cn("h-full transition-all duration-1000", (news.heuristic ?? news.sentiment ?? 0) > 0 ? "bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" : "bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]")} 
+                                        style={{ width: `${Math.abs(news.heuristic ?? news.sentiment ?? 0) * 100}%` }} 
                                     />
                                 </div>
-                                <span className={cn("text-[8px] font-black uppercase", news.heuristic > 0 ? "text-emerald-500" : "text-red-500")}>
-                                    {news.heuristic > 0 ? "+" : ""}{news.heuristic.toFixed(2)}
+                                <span className={cn("text-[8px] font-black uppercase", (news.heuristic ?? news.sentiment ?? 0) > 0 ? "text-emerald-500" : "text-red-500")}>
+                                    {(news.heuristic ?? news.sentiment ?? 0) > 0 ? "+" : ""}{(news.heuristic ?? news.sentiment ?? 0).toFixed(2)}
                                 </span>
                             </div>
                         </div>
@@ -231,7 +285,7 @@ export function ToolsSidebar({
                     </div>
                 )}
             </div>
-            <p className="mt-4 text-[8px] font-black uppercase tracking-[0.2em] text-white/20 text-center animate-pulse">Monitoring 150+ Global Alpha Channels...</p>
+            <p className="mt-4 text-[8px] font-black uppercase tracking-[0.2em] text-white/20 text-center animate-pulse">Monitoring Global Feeds (Yahoo, X, CC)...</p>
         </div>
 
         {/* Binance Connection Settings */}

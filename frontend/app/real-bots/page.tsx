@@ -87,7 +87,8 @@ export default function RealBotsPage() {
 
     try {
         const user = JSON.parse(userStr);
-        if (user.subscription_status === "premium") {
+        const status = user.subscription_status?.toLowerCase();
+        if (status === "premium" || status === "pro" || status === "elite") {
             setIsApiKeyModalOpen(true);
         } else {
             setIsSubModalOpen(true);
@@ -112,13 +113,20 @@ export default function RealBotsPage() {
 
   const toggleBotRequest = async (shouldRun: boolean, key?: string, secret?: string, leverage: number = 20) => {
       try {
+          const token = localStorage.getItem("token");
           const endpoint = shouldRun ? "/bot/start" : "/bot/stop";
-          const body = shouldRun ? JSON.stringify({ api_key: key, api_secret: secret, leverage: leverage }) : undefined;
-          
           const res = await fetch(`http://localhost:8000${endpoint}`, { 
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body
+              headers: { 
+                  "Content-Type": "application/json",
+                  "Authorization": token ? `Bearer ${token}` : ""
+              },
+              body: shouldRun ? JSON.stringify({ 
+                  api_key: key, 
+                  api_secret: secret, 
+                  leverage: leverage,
+                  use_news_ai: true // Combine both bots as requested
+              }) : undefined
           });
           
           if (!res.ok) throw new Error("Failed");
@@ -198,8 +206,10 @@ export default function RealBotsPage() {
     if (userStr) {
         try {
             const user = JSON.parse(userStr);
-            // Check if user is NOT premium
-            if (user.subscription_status !== "premium") {
+            const status = user.subscription_status?.toLowerCase();
+            if (status === "premium" || status === "pro" || status === "elite") {
+                setIsRestricted(false);
+            } else {
                 setIsRestricted(true);
             }
         } catch (e) {

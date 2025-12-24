@@ -15,3 +15,6 @@ pandas
 numpy
 huggingface_hub
 feedparser
+sqlalchemy[asyncio]
+asyncpg
+alembic
