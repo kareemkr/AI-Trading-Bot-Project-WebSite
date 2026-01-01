@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import axios from "axios";
+import { API_ENDPOINTS } from "@/lib/api";
 
 export default function BotControls() {
   const [loading, setLoading] = useState(false);
@@ -9,7 +10,7 @@ export default function BotControls() {
   const start = async () => {
     setLoading(true);
     try {
-      await axios.post("http://localhost:8000/bot/start");
+      await axios.post(API_ENDPOINTS.BOT.START);
     } catch (error) {
       console.error("Failed to start bot:", error);
     } finally {
@@ -20,7 +21,7 @@ export default function BotControls() {
   const stop = async () => {
     setLoading(true);
     try {
-      await axios.post("http://localhost:8000/bot/stop");
+      await axios.post(API_ENDPOINTS.BOT.STOP);
     } catch (error) {
       console.error("Failed to stop bot:", error);
     } finally {

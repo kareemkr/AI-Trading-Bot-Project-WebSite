@@ -55,11 +55,11 @@ export function Features() {
       <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[120px] -z-10" />
       
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-20 space-y-4">
+        <div className="text-center mb-12 sm:mb-20 space-y-4">
           <Badge variant="outline" className="px-3 py-1 border-accent/30 text-accent bg-accent/5 text-[10px] uppercase tracking-widest font-bold">
             Capabilities
           </Badge>
-          <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter">Engineered for the 1%.</h2>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase italic tracking-tighter">Engineered for the 1%.</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto font-medium">
             I designed this infrastructure to bridge the gap between retail limitations and institutional power. 
             Every module is built with an obsession for performance and precision.

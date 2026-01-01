@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "./api";
 /**
  * Authentication utilities for client-side route protection
  */
@@ -13,13 +14,32 @@ export interface User {
 }
 
 /**
- * Check if user is authenticated
+ * Check if user is authenticated and token is not expired
  */
 export function isAuthenticated(): boolean {
   if (typeof window === 'undefined') return false;
   const token = localStorage.getItem('token');
   const user = localStorage.getItem('user');
-  return !!(token && user);
+  
+  if (!token || !user) return false;
+
+  try {
+    // Basic JWT decoding (payload is the second part)
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const now = Math.floor(Date.now() / 1000);
+    
+    if (payload.exp && payload.exp < now) {
+      // Token expired
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      return false;
+    }
+  } catch (e) {
+    // If decoding fails, consider it unauthenticated
+    return false;
+  }
+
+  return true;
 }
 
 /**

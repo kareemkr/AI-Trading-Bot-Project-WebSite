@@ -39,13 +39,13 @@ async def get_account_overview(
         # Check if engine is running in Shadow/Virtual Mode
         if bot_manager.engine and bot_manager.engine.running and getattr(bot_manager.engine, 'is_virtual', False):
              info = bot_manager.engine.get_account_info()
-             response.update({
-                "connected": True,
-                "mode": "SHADOW",
-                "equity": f"${info['equity']:,.2f}",
-                "pnl_24h_pct": "+2.4%",
-                "trades": [],
-                "chart_data": [
+             equity_val = info.get('equity', 0)
+             
+             # If no equity, show a flat baseline at 0
+             if equity_val <= 0:
+                chart_data = [{"name": (datetime.now() - timedelta(hours=(6-i)*4)).strftime("%H:%M"), "value": 0} for i in range(7)]
+             else:
+                chart_data = [
                     {"name": "00:00", "value": 48500},
                     {"name": "04:00", "value": 49200},
                     {"name": "08:00", "value": 50100},
@@ -53,6 +53,14 @@ async def get_account_overview(
                     {"name": "16:00", "value": 50500},
                     {"name": "20:00", "value": 50000}
                 ]
+
+             response.update({
+                "connected": True,
+                "mode": "SHADOW",
+                "equity": f"${equity_val:,.2f}",
+                "pnl_24h_pct": "+0.0%" if equity_val <= 0 else "+2.4%",
+                "trades": [],
+                "chart_data": chart_data
             })
              return response
         return response

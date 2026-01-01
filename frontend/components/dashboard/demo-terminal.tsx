@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { Terminal, Cpu, Zap, ArrowUpRight, ArrowDownRight, Activity } from "lucide-react";
+import { API_ENDPOINTS } from "@/lib/api";
 
 const DEMO_SYMBOLS = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "AVAX/USDT"];
 const LOG_TYPES = [
@@ -21,7 +22,7 @@ export function DemoTerminal() {
 
     const fetchLogs = async () => {
       try {
-        const res = await fetch("http://localhost:8000/bot/logs");
+        const res = await fetch(API_ENDPOINTS.BOT.LOGS);
         if (res.ok) {
           const data = await res.json();
           if (data.logs && data.logs.length > 0) {

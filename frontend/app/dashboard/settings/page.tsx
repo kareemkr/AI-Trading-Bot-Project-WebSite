@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language-context";
+import { API_ENDPOINTS, API_BASE_URL } from "@/lib/api";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("profile");
@@ -33,6 +34,7 @@ export default function SettingsPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [avatar, setAvatar] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [tgToken, setTgToken] = useState("");
   const [tgChatId, setTgChatId] = useState("");
   const [binanceKey, setBinanceKey] = useState("");
@@ -67,6 +69,7 @@ export default function SettingsPage() {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setAvatar(reader.result as string);
       reader.readAsDataURL(file);
@@ -79,30 +82,32 @@ export default function SettingsPage() {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Authentication required");
 
-      const res = await fetch("http://localhost:8000/auth/update", {
+      const formData = new FormData();
+      formData.append("name", name);
+      if (avatarFile) {
+        formData.append("avatar", avatarFile);
+      }
+      formData.append("telegram_token", tgToken || "");
+      formData.append("telegram_chat_id", tgChatId || "");
+      formData.append("binance_api_key", binanceKey || "");
+      formData.append("binance_api_secret", binanceSecret || "");
+      formData.append("auto_trade_confirmation", String(autoConfirm));
+      formData.append("risk_management_alerts", String(riskAlerts));
+
+      const res = await fetch(API_ENDPOINTS.AUTH.UPDATE, {
         method: "PUT",
         headers: {
-          "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-            name, 
-            avatar,
-            telegram_token: tgToken || null,
-            telegram_chat_id: tgChatId || null,
-            binance_api_key: binanceKey || null,
-            binance_api_secret: binanceSecret || null,
-            auto_trade_confirmation: autoConfirm,
-            risk_management_alerts: riskAlerts,
-            news_analysis_ai: newsAI
-        })
+        body: formData
       });
 
       if (!res.ok) throw new Error("Backend update failed");
       const data = await res.json();
 
+      const existingUser = JSON.parse(localStorage.getItem("user") || "{}");
       const updatedUser = { 
-          ...user, 
+          ...existingUser,
           name: data.name, 
           avatar: data.avatar,
           telegram_token: data.telegram_token,
@@ -110,8 +115,7 @@ export default function SettingsPage() {
           binance_api_key: data.binance_api_key,
           binance_api_secret: data.binance_api_secret,
           auto_trade_confirmation: data.auto_trade_confirmation,
-          risk_management_alerts: data.risk_management_alerts,
-          news_analysis_ai: data.news_analysis_ai
+          risk_management_alerts: data.risk_management_alerts
       };
       
       localStorage.setItem("user", JSON.stringify(updatedUser));
@@ -135,7 +139,7 @@ export default function SettingsPage() {
     if (!isInitializing) {
         handleSave(true);
     }
-  }, [autoConfirm, riskAlerts, newsAI]);
+  }, [autoConfirm, riskAlerts]);
 
   if (isInitializing) return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -205,7 +209,11 @@ export default function SettingsPage() {
                       <div className="relative group">
                         <div className="w-32 h-32 rounded-[2.5rem] bg-white/5 border-2 border-accent/20 shadow-2xl overflow-hidden flex items-center justify-center group-hover:border-accent group-hover:scale-105 transition-all duration-500">
                           {avatar ? (
-                            <img src={avatar} className="w-full h-full object-cover" alt="Profile" />
+                            <img 
+                              src={avatar.startsWith("data:") ? avatar : (avatar.startsWith("/") ? `${API_BASE_URL}${avatar}` : avatar)} 
+                              className="w-full h-full object-cover" 
+                              alt="Profile" 
+                            />
                           ) : (
                             <span className="text-3xl font-black text-accent">{(name?.[0] || "T").toUpperCase()}</span>
                           )}
@@ -407,11 +415,10 @@ export default function SettingsPage() {
                                     <span className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] opacity-60 text-purple-400">Tactical Sentiment Engine v2.0</span>
                                 </div>
                             </div>
-                            {isPremium ? (
-                                <Switch checked={newsAI} onCheckedChange={setNewsAI} />
-                            ) : (
-                                <span className="text-[8px] bg-purple-500/20 text-purple-400 px-3 py-1.5 rounded-full uppercase font-black tracking-widest leading-none">Elite Access Required</span>
-                            )}
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-purple-500/20 rounded-full border border-purple-500/30">
+                                <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+                                <span className="text-[8px] font-black text-purple-400 uppercase tracking-widest leading-none">Always Operational</span>
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { ChatBubble } from "./chat-bubble";
 import { TradeBubble, type Trade } from "./trade-bubble";
 import { TypingIndicator } from "./typing-indicator";
-import { TrendingUp, Zap, Shield, LineChart } from "lucide-react";
+import { TrendingUp, Zap, Shield, LineChart, BrainCircuit } from "lucide-react";
 
 export interface Message {
   id: string;
@@ -47,7 +47,7 @@ export function ChatWindow({
         <div className="max-w-4xl mx-auto flex flex-col items-center justify-center h-full px-6 py-10 text-center relative z-10">
           <div className="space-y-8 mb-12">
             <div className="w-24 h-24 mx-auto rounded-[2rem] bg-accent/10 border border-accent/20 flex items-center justify-center shadow-2xl shadow-accent/10 group hover:scale-110 transition-transform duration-500">
-              <img src="/neural-logo.png" className="w-16 h-16 object-cover rounded-xl" alt="Neural Flow" />
+              <BrainCircuit className="w-12 h-12 text-accent" />
             </div>
 
             <div className="space-y-2">
@@ -85,7 +85,7 @@ export function ChatWindow({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto chat-scroll p-4 md:p-6">
+    <div className="flex-1 overflow-y-auto chat-scroll no-scrollbar p-4 md:p-6">
       <div className="max-w-4xl mx-auto space-y-4">
         {messages.map((msg) =>
           msg.role === "trade" && msg.trade ? (

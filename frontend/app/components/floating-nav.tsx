@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Rocket, Activity, LineChart, User } from "lucide-react";
+import { ArrowRight, Rocket, Activity, LineChart, User, BrainCircuit } from "lucide-react";
 import { toast } from "sonner";
 import { ProfileModal } from "@/components/ui/profile-modal";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
@@ -98,11 +98,11 @@ export function FloatingNav({ onOpenSubscription, isHomePage = false }: Floating
   };
 
   return (
-    <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50">
-      <div className="flex items-center gap-1.5 px-3 py-2.5 rounded-full border border-border/40 bg-card/80 backdrop-blur-2xl shadow-2xl shadow-black/10 ring-1 ring-white/5 transition-all hover:scale-[1.01]">
-        {/* Logo */}
-        <div className="w-12 h-12 rounded-full overflow-hidden border border-white/20 shadow-lg shadow-accent/10">
-          <img src="/neural-logo.png" className="w-full h-full object-cover scale-150" alt="Neural Flow Logo" />
+    <nav className="fixed bottom-0 left-0 right-0 w-full z-50 sm:bottom-8 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto sm:max-w-[calc(100vw-2rem)]">
+      <div className="flex items-center justify-between sm:justify-start gap-1.5 px-6 py-4 sm:px-3 sm:py-2.5 backdrop-blur-md bg-black/40 border-t border-white/5 sm:border sm:border-border/40 sm:bg-card/80 sm:backdrop-blur-2xl sm:shadow-2xl sm:shadow-black/10 sm:ring-1 sm:ring-white/5 sm:transition-all sm:hover:scale-[1.01] sm:overflow-x-auto sm:no-scrollbar sm:rounded-full">
+        {/* Logo - Hidden on mobile, visible on desktop */}
+        <div className="hidden sm:flex w-12 h-12 rounded-full overflow-hidden border border-white/20 shadow-lg shadow-accent/10 items-center justify-center bg-black">
+          <BrainCircuit className="w-6 h-6 text-accent" />
         </div>
 
         {/* Nav Items */}
@@ -112,14 +112,14 @@ export function FloatingNav({ onOpenSubscription, isHomePage = false }: Floating
             onClick={() => {
               handleProtectedNavigation(item.name, item.href, item.requiresAuth, item.requiresPremium);
             }}
-            className={`px-5 py-2.5 text-sm transition-all rounded-full flex items-center gap-2.5 font-black uppercase tracking-widest relative overflow-hidden group ${
+            className={`flex-1 sm:flex-none justify-center px-1 sm:px-5 py-1 sm:py-2.5 text-sm transition-all rounded-lg sm:rounded-full flex items-center gap-2.5 font-black uppercase tracking-widest relative overflow-hidden group ${
               activeItem === item.name
-                ? "text-foreground bg-accent/10 shadow-inner"
+                ? "text-foreground sm:bg-accent/10 sm:shadow-inner"
                 : "text-muted-foreground hover:text-foreground hover:bg-white/5"
             }`}
           >
-            <item.icon className={`w-4 h-4 transition-transform group-hover:scale-110 ${activeItem === item.name ? "text-accent" : ""}`} />
-            <span className="opacity-80">{item.name}</span>
+            <item.icon className={`w-5 h-5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110 ${activeItem === item.name ? "text-accent" : ""}`} />
+            <span className="opacity-80 hidden sm:block">{item.name}</span>
           </button>
         ))}
 

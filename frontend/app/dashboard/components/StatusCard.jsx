@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_ENDPOINTS } from "@/lib/api";
 
 export default function StatusCard() {
   const [status, setStatus] = useState("checking...");
@@ -9,7 +10,7 @@ export default function StatusCard() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await axios.get("http://localhost:8000/bot/status");
+        const res = await axios.get(API_ENDPOINTS.BOT.STATUS);
         setStatus(res.data.running ? "Running" : "Stopped");
       } catch (error) {
         setStatus("Error");

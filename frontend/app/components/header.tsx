@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LanguageSelector } from "@/components/ui/language-selector";
 import { useLanguage } from "@/lib/language-context";
+import { API_BASE_URL } from "@/lib/api";
+import { BrainCircuit } from "lucide-react";
 
 export function Header() {
   const [user, setUser] = useState<{ name: string } | null>(null);
@@ -23,13 +25,13 @@ export function Header() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 px-6 h-16 flex items-center justify-between bg-background/80 backdrop-blur-xl border-b border-border/40 transition-all duration-300">
+    <header className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 h-16 flex items-center justify-between bg-background/80 backdrop-blur-xl border-b border-border/40 transition-all duration-300">
       {/* Logo */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center p-1.5 shadow-lg shadow-accent/20 transition-transform hover:scale-105 active:scale-95">
-          <img src="/neural-logo.png" className="w-full h-full object-cover rounded-lg" alt="Neural Flow" />
+        <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center p-1.5 shadow-lg shadow-accent/20 transition-transform hover:scale-105 active:scale-95 text-background">
+          <BrainCircuit className="w-full h-full" />
         </div>
-        <span className="font-black text-2xl tracking-tighter italic uppercase text-foreground">Neural Flow</span>
+        <span className="font-black text-xl sm:text-2xl tracking-tighter italic uppercase text-foreground">Neural Flow</span>
       </div>
 
       {/* Right side */}
@@ -46,7 +48,11 @@ export function Header() {
                <div className={`relative w-8 h-8 rounded-full flex items-center justify-center p-[2px] ${(user as any).subscription_status === "premium" ? "bg-gradient-to-tr from-yellow-400 to-orange-500 shadow-md shadow-orange-500/20" : "bg-muted"}`}>
                  <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
                      {(user as any).avatar ? (
-                         <img src={(user as any).avatar} alt="User" className="w-full h-full object-cover" />
+                         <img 
+                          src={(user as any).avatar.startsWith("/") ? `${API_BASE_URL}${(user as any).avatar}` : (user as any).avatar} 
+                          alt="User" 
+                          className="w-full h-full object-cover" 
+                         />
                      ) : (
                          <span className="text-xs font-bold text-muted-foreground">{user.name?.[0]?.toUpperCase()}</span>
                      )}

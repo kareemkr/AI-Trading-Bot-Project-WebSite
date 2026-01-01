@@ -7,36 +7,45 @@ from app.models.bot import BotLog
 
 class BotManager:
     def __init__(self):
-        self.thread = None
+        self.bot_task = None
         self.running = False
         self.logs = []
-        self.engine = None  # <-- NEW
+        self.news_logs = []
+        self.engine = None
+        self.loop = None
 
     # -------------------------
     # Logging
     # -------------------------
-    def log(self, msg: str, level: str = "INFO"):
+    def set_loop(self, loop):
+        self.loop = loop
+
+    def log(self, msg: str, level: str = "INFO", module: str = "BotEngine"):
         timestamp = datetime.utcnow()
         entry = f"[{timestamp.strftime('%Y-%m-%d %H:%M:%S')}] {msg}"
-        print(entry)
-        self.logs.append(entry)
-        self.logs = self.logs[-500:]
+        print(f"[{module}] {entry}")
         
-        # Persist to DB in background if loop is running
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                loop.create_task(self._persist_log(msg, level))
-        except:
-            pass
+        if module == "NewsEngine":
+            self.news_logs.append(entry)
+            self.news_logs = self.news_logs[-500:]
+        else:
+            self.logs.append(entry)
+            self.logs = self.logs[-500:]
+        
+        # Persist to DB using the captured event loop
+        if self.loop and self.loop.is_running():
+            try:
+                asyncio.run_coroutine_threadsafe(self._persist_log(msg, level, module), self.loop)
+            except Exception as e:
+                print(f"Failed to schedule log persistence: {e}")
 
-    async def _persist_log(self, message: str, level: str):
+    async def _persist_log(self, message: str, level: str, module: str):
         try:
             async with AsyncSessionLocal() as db:
                 log_entry = BotLog(
                     message=message,
                     level=level,
-                    module="BotEngine"
+                    module=module
                 )
                 db.add(log_entry)
                 await db.commit()
@@ -52,10 +61,7 @@ class BotManager:
     # -------------------------
     # Start bot engine
     # -------------------------
-    # -------------------------
-    # Start bot engine
-    # -------------------------
-    def start_bot(self, api_key: str = None, api_secret: str = None, leverage: int = 1, telegram_config: dict = None, use_news_ai: bool = False):
+    async def start_bot(self, api_key: str = None, api_secret: str = None, leverage: int = 1, telegram_config: dict = None, use_news_ai: bool = False):
         if self.running:
             return "Bot already running."
 
@@ -64,28 +70,32 @@ class BotManager:
 
         self.running = True
 
-        def run():
-            try:
+        if self.loop and self.loop.is_running():
+            self.bot_task = asyncio.create_task(
                 self.engine.run(api_key, api_secret, leverage, telegram_config, use_news_ai)
-            except Exception as e:
-                self.log(f"ENGINE ERROR: {e}")
-            finally:
-                self.running = False
-                self.log("Bot stopped.")
-
-        self.thread = threading.Thread(target=run, daemon=True)
-        self.thread.start()
-
-        return "Bot started."
+            )
+            return "Bot started."
+        else:
+            self.running = False
+            return "Failed to start: No active event loop captured."
 
     # -------------------------
     # Stop bot engine
     # -------------------------
     def stop_bot(self):
+        if not self.running:
+            return "Bot is not running."
+        
         if self.engine:
             self.engine.stop()
+        
+        if self.bot_task:
+            self.bot_task.cancel()
+            self.bot_task = None
+            
         self.running = False
-        return "Stop signal sent."
+        self.log("Bot stop signal sent.")
+        return "Bot stopped."
 
     # -------------------------
     # Status + Logs
@@ -95,5 +105,9 @@ class BotManager:
 
     def get_logs(self):
         return self.logs
+
+    def get_news_logs(self):
+        return self.news_logs
+
 bot_manager = BotManager()
 

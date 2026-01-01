@@ -12,9 +12,7 @@ import os
 import requests
 from app.services.news_service import news_ai
 from app.services.telegram_service import telegram_ai
-from app.services.wallet_service import wallet_service
 from app.database.session import AsyncSessionLocal
-from decimal import Decimal
 import asyncio
 
 def send_telegram_msg(token, chat_id, message):
@@ -71,9 +69,12 @@ class RealTradingBot:
     def set_logger(self, logger_func):
         self.logger = logger_func
 
-    def log(self, msg):
+    def log(self, msg, level="INFO"):
         if self.logger:
-            self.logger(msg)
+            try:
+                self.logger(msg, level, module="BotEngine")
+            except TypeError:
+                self.logger(msg)
         else:
             print(f"[BOT] {msg}")
 
@@ -266,6 +267,8 @@ class RealTradingBot:
             time_multiplier = 0.5 # Neutralize weekend washouts
         elif time_context == "DAILY_CLOSE_VOLATILITY":
             time_multiplier = 0.8 # Respect the UTC 00:00 volatility spike
+        
+        self.log(f"🌐 MACRO_CONTEXT: Detected Session [{time_context}] | Volatility Multiplier: {time_multiplier}x")
 
         # --- CRYPTO-NATIVE: BTC BETA CHECK ---
         # "Don't fight the King." If BTC is bearish, altcoin longs are traps.
@@ -277,9 +280,12 @@ class RealTradingBot:
                 time_multiplier *= 0.2 # Kill conviction if BTC is dumping
             
         if use_news_ai:
-            news_signal = news_ai.get_decision(symbol.replace("USDT",""))
+            sig_data = news_ai.get_signal()
+            news_signal = sig_data["signal"]
             sentiment = news_ai.sentiment_score
             sentiment_pct = round(sentiment * 100, 1)
+            self.log(f"🧠 NEURAL_GATE_SYNC: [{symbol}] Comparing TA Bias ({ta_score:+.3f}) with News Sentiment ({sentiment_pct}%)")
+            self.log(f"↳ Signal: {news_signal} | Confidence: {sig_data['confidence']*100}% | Drivers: {', '.join(sig_data['drivers'])}")
             
             # Strict Convergence Strategy
             if news_signal == "BULLISH":
@@ -312,6 +318,16 @@ class RealTradingBot:
         atr = float(last_row["atr_14"].iloc[0])
         
         sig_type = "LONG" if final_score > 0.12 else ("SHORT" if final_score < -0.12 else "NEUTRAL")
+
+        # --- CONFIDENCE GATE (Addition 2) ---
+        if sig_type != "NEUTRAL":
+            news_count = len(news_ai.cached_news)
+            # Check for recent alpha events (e.g., last 30 mins)
+            has_alpha = len(news_ai.alpha_events) > 0
+            
+            if news_count < 3 and not has_alpha:
+                self.log(f"💤 CONFIDENCE_GATE: Only {news_count} news items and no alpha signals. Forcing NEUTRAL for institutional safety.")
+                sig_type = "NEUTRAL"
         
         # Add sentiment info to log
         s_info = f" | News: {sentiment_pct}%" if use_news_ai else ""
@@ -328,7 +344,7 @@ class RealTradingBot:
             "signal": sig_type
         }
 
-    async def place_trade_async(self, signal_data, telegram_config=None):
+    async def place_trade(self, signal_data, telegram_config=None):
         symbol = signal_data["symbol"]
         
         if signal_data["signal"] == "NEUTRAL":
@@ -340,41 +356,13 @@ class RealTradingBot:
         
         self.log(f"🎯 Strategy Triggered for {symbol} ({side})")
         
-        # 1. Fetch real balance from PG
-        try:
-            async with AsyncSessionLocal() as db:
-                # We assume a default user_id=1 for now, in a real saas this would be user.id
-                wallet = await wallet_service.get_wallet(db, user_id=1) 
-                balance = float(wallet.balance)
-        except Exception as e:
-            self.log(f"❌ Wallet Error: {e}")
-            balance = 0.0
-
-        if balance <= 0:
-            self.log(f"🚫 Insufficient vault funds (Balance: {balance})")
-            return
-
-        # 2. Risk Management
-        risk_qty = (balance * 0.02) / (signal_data["atr"] or 0.01) 
-        qty = round(risk_qty, 3) 
-        if qty <= 0: 
-            self.log(f"🚫 Trade too small for {symbol} (Qty: {qty})")
-            return
+        # Risk Management (Fixed unit for simplicity as per removal of wallet logic)
+        qty = 0.01 # Institutional default unit
         
-        # 3. Financial Lock (Phase 4)
-        trade_cost = Decimal(str(qty * price * 0.1)) # 10% collateral for futures? simplified
-        try:
-            async with AsyncSessionLocal() as db:
-                await wallet_service.lock_funds(db, user_id=1, amount=trade_cost)
-                self.log(f"🔒 Capital Locked: {trade_cost} USDT")
-        except Exception as e:
-            self.log(f"❌ Failed to lock funds: {e}")
-            return
-
         self.log(f"⚡ EVALUATING {side} PROTOCOL: {qty} {symbol} @ {price}")
         
         if self.is_virtual:
-            self.log(f"🛡️ [SHADOW] Forwarding signal to virtual ledger (No real execution).")
+            self.log(f"🛡️ [SHADOW] Forwarding signal to virtual ledger.")
             try:
                 from app.main import sim
                 await sim.record(symbol, side, signal_data.get("score", 1.0), news_ai.sentiment_score, price=price, qty=qty)
@@ -382,7 +370,9 @@ class RealTradingBot:
             return
 
         try:
-            self.client.futures_create_order(symbol=symbol, side=side, type="MARKET", quantity=qty)
+            # Wrap synchronous Binance call in executor
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, self.client.futures_create_order, symbol, side, "MARKET", qty)
             self.log(f"✨ SUCCESS: {side} order filled for {symbol}")
             
             try:
@@ -391,19 +381,17 @@ class RealTradingBot:
             except: pass
 
             if telegram_config:
-                await telegram_ai.send_signal_alert(symbol, side, news_ai.sentiment_score, 0.95)
+                try:
+                    await telegram_ai.send_signal_alert(symbol, side, news_ai.sentiment_score, 0.95)
+                except Exception as te:
+                    self.log(f"Telegram notification failed (non-fatal): {te}", level="WARNING")
         except Exception as e:
             self.log(f"❌ EXECUTION FAILED: {str(e)}")
-            # Rollback lock on failure
-            async with AsyncSessionLocal() as db:
-                await wallet_service.release_funds(db, user_id=1, amount=trade_cost, pnl=Decimal("0"))
-            
             if telegram_config:
-                send_telegram_msg(telegram_config.get("token"), telegram_config.get("chat_id"), f"❌ Trade Failed: {symbol} {side}\nError: {str(e)}")
-
-    def place_trade(self, signal_data, telegram_config=None):
-        """Sync wrapper for the async place_trade_async"""
-        asyncio.run(self.place_trade_async(signal_data, telegram_config))
+                try:
+                    await telegram_ai.send_signal_alert(symbol, f"FAILED_{side}", news_ai.sentiment_score, 0.0)
+                except Exception as te:
+                    self.log(f"Telegram notification failed (non-fatal): {te}", level="WARNING")
 
     def set_leverage(self, leverage):
         if self.is_virtual:
@@ -416,79 +404,81 @@ class RealTradingBot:
         except Exception as e:
             self.log(f"❌ Leverage error: {e}")
 
-    def run(self, api_key=None, api_secret=None, leverage=1, telegram_config=None, use_news_ai=False):
+    async def run(self, api_key=None, api_secret=None, leverage=1, telegram_config=None, use_news_ai=False):
         self.running = True
+        loop = asyncio.get_running_loop()
         try:
             self.log("Initializing secure connection to Binance...")
-            self.connect(api_key, api_secret)
-            self.set_leverage(leverage)
+            await loop.run_in_executor(None, self.connect, api_key, api_secret)
+            await loop.run_in_executor(None, self.set_leverage, leverage)
             
             if telegram_config:
-                send_telegram_msg(telegram_config.get("token"), telegram_config.get("chat_id"), "🚀 AI Bot Started Successfully!")
+                try:
+                    await telegram_ai.send_msg("🚀 AI Bot Started Successfully!")
+                except Exception as te:
+                    self.log(f"Telegram start notification failed: {te}", level="WARNING")
+
+            self.log(f"BOT STATUS: RUNNING | mode={'SHADOW' if self.is_virtual else 'REAL'} | news=ON | trading=ON")
 
             self.log("Training local ML model on historical BTC data...")
-            if not self.train_model():
-                self.log("❌ Training failed. Insufficient data.")
+            success = await loop.run_in_executor(None, self.train_model)
+            if not success:
+                self.log(f"BOT STOPPED | reason=Training failed. Insufficient data.", level="CRITICAL")
                 return
 
             self.log("🕵️ Starting high-frequency scanning loop...")
             while self.running:
-                import asyncio
-                
                 # --- FAST PATH: INFLUENCER ALPHA ---
                 if use_news_ai:
-                    alpha_event = asyncio.run(news_ai.scan_influencer_alpha())
+                    alpha_event = await news_ai.scan_influencer_alpha()
                     if alpha_event:
-                        # Institutional-grade event logging
                         self.log(f"🚨 NEURAL_SIGNAL_TRIGGER: High-Impact intelligence detected.")
                         self.log(f"↳ Source: @{alpha_event['account']} ({alpha_event['source']})")
                         self.log(f"↳ Authority: {alpha_event['authority']} | Confidence: {alpha_event['confidence']:.2f}")
-                        self.log(f"↳ Core Intel: \"{alpha_event['content'][:60]}...\"")
                         
                         target_symbol = f"{alpha_event['coin'].upper()}USDT"
                         if alpha_event['coin'].upper() == "MARKET": target_symbol = "BTCUSDT"
                         
                         self.log(f"⚡ FAST-PATH EXECUTION: Initiating emergency {target_symbol} protocol.")
                         
-                        # Mock price/atr for fast-path if ohlcv fetch fails
                         sig_data = {
                             "symbol": target_symbol,
                             "signal": "LONG",
-                            "price": 0.0, # Will be handled by market order
-                            "atr": 0.01,   # Standard default for emergency entry
+                            "price": 0.0,
+                            "atr": 0.01,
                             "score": 1.0
                         }
-                        self.place_trade(sig_data, telegram_config)
+                        await self.place_trade(sig_data, telegram_config)
 
                 # --- STANDARD PATH: ML SCAN ---
-                symbols = self.get_top_symbols()
+                symbols = await loop.run_in_executor(None, self.get_top_symbols)
                 self.log(f"🌐 Identified {len(symbols)} high-volume candidates...")
                 best_signal = None
                 best_score = 0
                 
                 for sym in symbols:
                     if not self.running: break
-                    # Fix: use_news_ai needs to be passed correctly. 
-                    import asyncio
-                    sig = asyncio.run(self.compute_signal(sym, use_news_ai))
+                    sig = await self.compute_signal(sym, use_news_ai)
                     if sig and abs(sig["score"]) > abs(best_score):
                         best_score = sig["score"]
                         best_signal = sig
                 
                 if best_signal and abs(best_score) > 0.12:
                     self.log(f"💡 High-probability signal identified on {best_signal['symbol']}!")
-                    self.place_trade(best_signal, telegram_config)
+                    await self.place_trade(best_signal, telegram_config)
                 else:
                     self.log("💤 Market scan complete. No high-conviction signals. Sleeping for 60s...")
                 
                 for _ in range(60):
                     if not self.running: break
-                    time.sleep(1)
+                    await asyncio.sleep(1)
                     
         except Exception as e:
-            self.log(f"Critical Error: {e}")
+            self.log(f"Critical Error: {e}", level="ERROR")
+            self.log(f"BOT STOPPED | reason={e}", level="CRITICAL")
         finally:
             self.running = False
+            self.log("BOT STOPPED | reason=Manual Stop or Loop Exit", level="CRITICAL")
 
     def stop(self):
         self.running = False

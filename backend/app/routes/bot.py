@@ -29,12 +29,12 @@ async def start_bot(request: BotStartRequest, user: User = Depends(get_current_u
     # Leverage from request or user profile (default 1)
     lev = request.leverage or 1
 
-    msg = bot_manager.start_bot(
+    msg = await bot_manager.start_bot(
         api_key=request.api_key, 
         api_secret=request.api_secret, 
         leverage=lev,
         telegram_config=telegram_config,
-        use_news_ai=request.use_news_ai
+        use_news_ai=True # Hardcoded to True as per user request
     )
     return {"message": msg}
 

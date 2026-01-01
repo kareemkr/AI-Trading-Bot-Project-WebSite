@@ -2,12 +2,14 @@ import os
 import json
 import sqlite3
 import logging
+import asyncio
 from dotenv import load_dotenv
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import select
 from app.models.bot import BotTradeRecord
@@ -17,10 +19,10 @@ from app.api.assistant import router as assistant_router
 from app.api.oauth import router as oauth_router
 from app.api.payment import router as payment_router
 from app.api.news import router as news_router
-from app.api.wallets import router as wallets_router
 from app.api.webhooks import router as webhooks_router
 from app.api.logs import router as logs_router
 from app.api.admin import router as admin_router
+from app.api.health import router as health_router
 
 from app.routes import auth, bot, status, account
 from app.services.trade_simulator import TradeSim
@@ -37,27 +39,35 @@ PLATFORM_KILL_SWITCH = is_production
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn")
 
+# SILENCE SQLAlchemy ENGINE LOGS (Huge improvement)
+logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING) # Reduce REQ/RES noise
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Log startup
-    logger.info("Initializing AI Trading Bot Backend...")
+    from app.services.bot_manager import bot_manager
+    bot_manager.log("Initializing AI Trading Bot Backend...")
     try:
         from app.services.bot_manager import bot_manager
         from app.ml.engine import RealTradingBot
         from app.services.news_service import news_ai
         
         # Initialize engine and attach to manager
+        loop = asyncio.get_running_loop()
+        bot_manager.set_loop(loop)
+        
         engine = RealTradingBot()
         engine.set_logger(bot_manager.log)
+        news_ai.set_logger(bot_manager.log)
         bot_manager.set_engine(engine)
-        logger.info("✅ RealTradingBot Engine Integrated")
+        bot_manager.log("✅ RealTradingBot Engine Integrated & Thread-Safe Loop Captured")
     except Exception as e:
-        logger.error(f"❌ Engine initialization failed: {e}")
+        bot_manager.log(f"❌ Engine initialization failed: {e}", level="ERROR")
         
     # Start News AI in background
-    import asyncio
     news_task = asyncio.create_task(news_ai.run())
-    logger.info("✅ News AI Neural Engine Activated")
+    bot_manager.log("✅ News AI Neural Engine Activated")
 
     yield
     
@@ -74,6 +84,13 @@ app = FastAPI(
     redoc_url="/redoc" if not is_production else None,
     openapi_url="/openapi.json" if not is_production else None
 )
+
+# --- STATIC FILES (Phase 10: Professional Storage) ---
+UPLOAD_DIR = "uploads"
+AVATAR_DIR = os.path.join(UPLOAD_DIR, "avatars")
+os.makedirs(AVATAR_DIR, exist_ok=True)
+
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # ---------------------
 # MIDDLEWARE
@@ -99,9 +116,23 @@ async def safety_and_rate_limit_middleware(request: Request, call_next):
         response.headers["Content-Security-Policy"] = "default-src 'self'"
     return response
 
+# CORS configuration
+if is_production:
+    allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
+    # If not set, default to something safe or keep empty to force config
+else:
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://192.168.56.1:3000",
+        "http://192.168.56.1:3001"
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -109,8 +140,10 @@ app.add_middleware(
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv("SESSION_SECRET", "DEV_SECRET")
+    secret_key=os.getenv("SESSION_SECRET") or ("DEV_SECRET" if not is_production else None)
 )
+if is_production and not os.getenv("SESSION_SECRET"):
+    logger.error("❌ SESSION_SECRET not set in production! Session middleware might fail.")
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -127,10 +160,10 @@ app.include_router(assistant_router, tags=["Assistant"])
 app.include_router(oauth_router, tags=["OAuth"])
 app.include_router(payment_router, tags=["Payment"])
 app.include_router(news_router, tags=["News"])
-app.include_router(wallets_router, tags=["Wallets"])
 app.include_router(webhooks_router, prefix="/webhooks", tags=["Webhooks"])
 app.include_router(logs_router, prefix="/api/logs", tags=["Logs"])
 app.include_router(admin_router, prefix="/api/admin", tags=["Admin"])
+app.include_router(health_router, tags=["System"])
 
 app.include_router(bot.router, tags=["Bot"])
 app.include_router(status.router, tags=["Status"])

@@ -39,4 +39,8 @@ class TelegramService:
         )
         await self.send_message(msg)
 
+    async def send_msg(self, text: str):
+        """Bridge for older calls to send_msg"""
+        await self.send_message(text)
+
 telegram_ai = TelegramService()

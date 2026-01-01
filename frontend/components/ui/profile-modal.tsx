@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { User, CreditCard, Shield, Clock, LogOut, Camera, Edit2, Check, X, Star, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { API_ENDPOINTS, API_BASE_URL } from "@/lib/api";
 
 interface ProfileModalProps {
   open: boolean;
@@ -19,6 +20,7 @@ export function ProfileModal({ open, onClose, onUpgrade }: ProfileModalProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAvatar, setNewAvatar] = useState<string | null>(null);
+  const [newAvatarFile, setNewAvatarFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -49,6 +51,7 @@ export function ProfileModal({ open, onClose, onUpgrade }: ProfileModalProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setNewAvatarFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setNewAvatar(reader.result as string);
@@ -63,16 +66,18 @@ export function ProfileModal({ open, onClose, onUpgrade }: ProfileModalProps) {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("No token found");
 
-        const res = await fetch("http://localhost:8000/auth/update", {
+        const formData = new FormData();
+        formData.append("name", newName);
+        if (newAvatarFile) {
+            formData.append("avatar", newAvatarFile);
+        }
+
+        const res = await fetch(API_ENDPOINTS.AUTH.UPDATE, {
             method: "PUT",
             headers: {
-                "Content-Type": "application/json",
                 "Authorization": `Bearer ${token}`
             },
-            body: JSON.stringify({
-                name: newName,
-                avatar: newAvatar
-            })
+            body: formData
         });
 
         if (!res.ok) throw new Error("Update failed");
@@ -115,7 +120,11 @@ export function ProfileModal({ open, onClose, onUpgrade }: ProfileModalProps) {
                 {/* Futuristic Avatar */}
                  <div className={`w-28 h-28 rounded-[2rem] mx-auto border-4 border-card shadow-2xl flex items-center justify-center text-4xl font-black mb-2 relative overflow-hidden transition-all duration-500 scale-100 group-hover:scale-105 ${isPremium ? "bg-accent/10 text-accent border-accent/20 shadow-accent/20" : "bg-muted text-muted-foreground border-white/5"}`}>
                     {newAvatar ? (
-                        <img src={newAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                        <img 
+                          src={newAvatar.startsWith("data:") ? newAvatar : (newAvatar.startsWith("/") ? `${API_BASE_URL}${newAvatar}` : newAvatar)} 
+                          alt="Avatar" 
+                          className="w-full h-full object-cover" 
+                        />
                     ) : (
                         user.name?.[0]?.toUpperCase() || "T"
                     )}

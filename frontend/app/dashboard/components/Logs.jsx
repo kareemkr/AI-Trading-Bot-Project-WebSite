@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_ENDPOINTS } from "@/lib/api";
 
 export default function Logs() {
   const [logs, setLogs] = useState([]);
 
   useEffect(() => {
     const interval = setInterval(async () => {
-      const res = await axios.get("http://localhost:8000/bot/logs");
+      const res = await axios.get(API_ENDPOINTS.BOT.LOGS);
       setLogs(res.data.logs);
     }, 1500);
 

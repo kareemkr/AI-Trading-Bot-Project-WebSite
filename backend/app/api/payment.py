@@ -28,6 +28,31 @@ async def crypto_confirm(data: CryptoConfirmData, db: AsyncSession = Depends(get
     if len(data.tx_hash) < 10:
         raise HTTPException(status_code=400, detail="Invalid transaction hash")
 
+    # Create Transaction Record
+    from app.models.wallet import Transaction, Wallet
+    from sqlalchemy import select
+
+    # Get user wallet
+    wallet_res = await db.execute(select(Wallet).where(Wallet.user_id == user.id, Wallet.currency == "USDT"))
+    wallet = wallet_res.scalars().first()
+    
+    if not wallet:
+        # Create wallet if missing
+        wallet = Wallet(user_id=user.id, currency="USDT", balance=0)
+        db.add(wallet)
+        await db.flush()
+
+    new_tx = Transaction(
+        wallet_id=wallet.id,
+        type="deposit",
+        amount=0, # Amount depends on plan, but for now we just log the intent
+        status="completed", # Auto-confirming for now as requested, but logged
+        external_id=data.tx_hash,
+        source="CRYPTO_PAYMENT",
+        reference=f"Subscription: {data.plan_name}"
+    )
+    db.add(new_tx)
+
     # Calculate Expiry
     now = datetime.utcnow()
     days = 365 if data.duration == "yearly" else 30

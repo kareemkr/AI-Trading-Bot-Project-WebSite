@@ -6,8 +6,7 @@ import { TransactionHistory } from "@/components/wallet/transaction-history"
 import { Button } from "@/components/ui/button"
 import { ArrowUpRight, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
-
-const API_URL = "http://localhost:8000"
+import { API_ENDPOINTS } from "@/lib/api"
 
 export default function WalletPage() {
   const [balance, setBalance] = useState({ balance: 0, locked: 0, currency: "USDT" })
@@ -24,7 +23,7 @@ export default function WalletPage() {
       }
 
       // Fetch Balance
-      const balanceRes = await fetch(`${API_URL}/wallets/balance`, {
+      const balanceRes = await fetch(API_ENDPOINTS.WALLET.BALANCE, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (balanceRes.ok) {
@@ -33,7 +32,7 @@ export default function WalletPage() {
       }
 
       // Fetch Transactions
-      const txRes = await fetch(`${API_URL}/wallets/history/transactions`, {
+      const txRes = await fetch(API_ENDPOINTS.WALLET.TRANSACTIONS, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (txRes.ok) {

@@ -156,8 +156,8 @@ function MarketRowCompact({ coin, watchlist, setWatchlist }: any) {
 
        <div className="text-right">
           <p className="text-[11px] font-black leading-none italic">${coin.current_price.toLocaleString()}</p>
-          <p className={`text-[9px] font-black mt-1 ${coin.price_change_percentage_24h > 0 ? "text-accent" : "text-red-500"}`}>
-            {coin.price_change_percentage_24h > 0 ? "+" : ""}{coin.price_change_percentage_24h.toFixed(2)}%
+          <p className={`text-[9px] font-black mt-1 ${ (coin.price_change_percentage_24h || 0) > 0 ? "text-accent" : "text-red-500"}`}>
+            {(coin.price_change_percentage_24h || 0) > 0 ? "+" : ""}{(coin.price_change_percentage_24h || 0).toFixed(2)}%
           </p>
        </div>
     </div>

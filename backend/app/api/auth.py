@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Form
+import shutil
+import uuid
 import os
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime, timedelta
@@ -13,8 +15,15 @@ from pydantic import BaseModel
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
-SECRET_KEY = os.getenv("JWT_SECRET", "SUPER_SECRET_KEY")
+SECRET_KEY = os.getenv("JWT_SECRET")
+if not SECRET_KEY:
+    # In production, we should raise an error. For now, we'll log a warning.
+    import logging
+    logging.warning("JWT_SECRET not found in environment variables. Using insecure default.")
+    SECRET_KEY = "SUPER_SECRET_KEY_CHANGEME_PROD"
+
 ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_DAYS = 7
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 class LoginData(BaseModel):
@@ -30,26 +39,33 @@ class UpdateProfileRequest(BaseModel):
     binance_api_secret: str | None = None
     auto_trade_confirmation: bool | None = None
     risk_management_alerts: bool | None = None
-    news_analysis_ai: bool | None = None
 
 def create_token(email: str):
     payload = {
         "sub": email,
-        "exp": datetime.utcnow() + timedelta(hours=24),
+        "iat": datetime.utcnow(),
+        "exp": datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> User:
+    print(f"DEBUG: Validating token: {token[:10]}...") 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
+            print("DEBUG: Token has no sub field")
             raise HTTPException(status_code=401, detail="Invalid token")
-    except jwt.PyJWTError:
+    except jwt.ExpiredSignatureError:
+        print("DEBUG: Token expired")
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.PyJWTError as e:
+        print(f"DEBUG: JWT Error: {e}")
         raise HTTPException(status_code=401, detail="Invalid token")
     
     user = await get_user_by_email(db, email)
     if user is None:
+        print(f"DEBUG: User not found for email: {email}")
         raise HTTPException(status_code=401, detail="User not found")
     return user
 
@@ -112,26 +128,59 @@ async def login(data: LoginData, db: AsyncSession = Depends(get_db)):
         "subscription_status": user.subscription_status,
     }
 
+@router.get("/me", response_model=UserRead)
+async def get_me(user: User = Depends(get_current_user)):
+    return user
+
 @router.put("/update")
-async def update_profile(data: UpdateProfileRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if data.name:
-        user.name = data.name
-    if data.avatar:
-        user.avatar = data.avatar
-    if data.telegram_token is not None:
-        user.telegram_token = data.telegram_token
-    if data.telegram_chat_id is not None:
-        user.telegram_chat_id = data.telegram_chat_id
-    if data.binance_api_key is not None:
-        user.binance_api_key = data.binance_api_key
-    if data.binance_api_secret is not None:
-        user.binance_api_secret = data.binance_api_secret
-    if data.auto_trade_confirmation is not None:
-        user.auto_trade_confirmation = data.auto_trade_confirmation
-    if data.risk_management_alerts is not None:
-        user.risk_management_alerts = data.risk_management_alerts
-    if data.news_analysis_ai is not None:
-        user.news_analysis_ai = data.news_analysis_ai
+async def update_profile(
+    name: str | None = Form(None),
+    avatar: UploadFile | None = File(None),
+    telegram_token: str | None = Form(None),
+    telegram_chat_id: str | None = Form(None),
+    binance_api_key: str | None = Form(None),
+    binance_api_secret: str | None = Form(None),
+    auto_trade_confirmation: bool | None = Form(None),
+    risk_management_alerts: bool | None = Form(None),
+    user: User = Depends(get_current_user), 
+    db: AsyncSession = Depends(get_db)
+):
+    if name:
+        user.name = name
+    
+    if avatar:
+        # Create uploads directory if it doesn't exist
+        os.makedirs("uploads/avatars", exist_ok=True)
+        
+        # Security: unique filename
+        file_ext = os.path.splitext(avatar.filename)[1]
+        unique_filename = f"{uuid.uuid4()}{file_ext}"
+        file_path = f"uploads/avatars/{unique_filename}"
+        
+        # Delete old avatar if it exists locally
+        if user.avatar and user.avatar.startswith("/uploads/"):
+            old_path = user.avatar.lstrip("/")
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        
+        # Save new file
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(avatar.file, buffer)
+            
+        user.avatar = f"/{file_path}"
+
+    if telegram_token is not None:
+        user.telegram_token = telegram_token
+    if telegram_chat_id is not None:
+        user.telegram_chat_id = telegram_chat_id
+    if binance_api_key is not None:
+        user.binance_api_key = binance_api_key
+    if binance_api_secret is not None:
+        user.binance_api_secret = binance_api_secret
+    if auto_trade_confirmation is not None:
+        user.auto_trade_confirmation = auto_trade_confirmation
+    if risk_management_alerts is not None:
+        user.risk_management_alerts = risk_management_alerts
     
     await db.commit()
     await db.refresh(user)
@@ -145,6 +194,5 @@ async def update_profile(data: UpdateProfileRequest, user: User = Depends(get_cu
         "binance_api_key": user.binance_api_key,
         "binance_api_secret": user.binance_api_secret,
         "auto_trade_confirmation": user.auto_trade_confirmation,
-        "risk_management_alerts": user.risk_management_alerts,
-        "news_analysis_ai": user.news_analysis_ai
+        "risk_management_alerts": user.risk_management_alerts
     }

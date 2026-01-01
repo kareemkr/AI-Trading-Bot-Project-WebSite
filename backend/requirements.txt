@@ -17,4 +17,5 @@ huggingface_hub
 feedparser
 sqlalchemy[asyncio]
 asyncpg
+python-multipart
 alembic

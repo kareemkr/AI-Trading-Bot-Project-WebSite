@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Sparkles, Twitter, Github, Linkedin, Mail } from "lucide-react";
+import { Sparkles, Twitter, Github, Linkedin, Mail, BrainCircuit } from "lucide-react";
 
 export function Footer() {
   return (
@@ -10,8 +10,8 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 md:col-span-1 space-y-8">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-                <img src="/neural-logo.png" className="w-full h-full object-cover rounded-xl" alt="Neural Flow" />
+              <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center text-background">
+                <BrainCircuit className="w-6 h-6" />
               </div>
               <span className="font-black text-2xl tracking-tighter italic uppercase">Neural Flow</span>
             </div>

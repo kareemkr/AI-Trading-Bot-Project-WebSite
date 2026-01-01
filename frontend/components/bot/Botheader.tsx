@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Menu, Moon, Sun, Trash2, User, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
+import { API_BASE_URL } from "@/lib/api";
 
 interface HeaderProps {
   onClearChat: () => void;
@@ -19,6 +20,8 @@ interface HeaderProps {
   autoTrading: boolean;
   onToggleAutoTrading: (enabled: boolean) => void;
   title?: string;
+  viewMode: 'assistant' | 'terminal';
+  onViewModeChange: (mode: 'assistant' | 'terminal') => void;
 }
 
 export function BotHeader({
@@ -27,6 +30,8 @@ export function BotHeader({
   autoTrading,
   onToggleAutoTrading,
   title,
+  viewMode,
+  onViewModeChange,
 }: HeaderProps) {
   const [isDark, setIsDark] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -67,7 +72,11 @@ rounded-xl hover:bg-accent/50"
             <div className={`relative w-10 h-10 rounded-xl flex items-center justify-center p-[2px] ${user?.subscription_status === "elite" || user?.subscription_status === "pro" ? "bg-gradient-to-tr from-accent to-emerald-400 shadow-xl shadow-accent/20" : "bg-white/10"}`}>
                <div className="w-full h-full rounded-[0.5rem] bg-card flex items-center justify-center overflow-hidden">
                    {user?.avatar ? (
-                       <img src={user.avatar} alt="User" className="w-full h-full object-cover" />
+                       <img 
+                        src={user.avatar.startsWith("/") ? `${API_BASE_URL}${user.avatar}` : user.avatar} 
+                        alt="User" 
+                        className="w-full h-full object-cover" 
+                       />
                    ) : (
                        <span className="text-xs font-black uppercase italic">{user?.name?.[0]?.toUpperCase() || "U"}</span>
                    )}
@@ -88,6 +97,32 @@ rounded-xl hover:bg-accent/50"
                  </span>
             </div>
         </div>
+      </div>
+
+      {/* Center Toggle Switcher */}
+      <div className="flex bg-black/40 p-1 rounded-[1.2rem] border border-white/5 shadow-2xl backdrop-blur-xl">
+          <button 
+            onClick={() => onViewModeChange('assistant')}
+            className={cn(
+                "px-8 py-2.5 rounded-[1rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500",
+                viewMode === 'assistant' 
+                    ? "bg-accent text-black shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-105" 
+                    : "text-white/30 hover:text-white/60"
+            )}
+          >
+              Assistant
+          </button>
+          <button 
+            onClick={() => onViewModeChange('terminal')}
+            className={cn(
+                "px-8 py-2.5 rounded-[1rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500",
+                viewMode === 'terminal' 
+                    ? "bg-accent text-black shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-105" 
+                    : "text-white/30 hover:text-white/60"
+            )}
+          >
+              Terminal
+          </button>
       </div>
 
       <div className="flex items-center gap-3">

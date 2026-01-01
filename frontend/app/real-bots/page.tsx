@@ -13,6 +13,7 @@ import { LogConsole } from "@/components/bot/log-console";
 
 import SubscriptionModal from "@/components/ui/subscription-modal";
 import { toast } from "sonner";
+import { API_ENDPOINTS } from "@/lib/api";
 
 const genId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -38,14 +39,14 @@ export default function RealBotsPage() {
     const fetchStatus = async () => {
         try {
             // Status
-            const resStatus = await fetch("http://localhost:8000/bot/status");
+            const resStatus = await fetch(API_ENDPOINTS.BOT.STATUS);
             const dataStatus = await resStatus.json();
             if (dataStatus.running !== autoTrading) {
                 setAutoTrading(dataStatus.running);
             }
 
             // Logs
-            const resLogs = await fetch("http://localhost:8000/bot/logs");
+            const resLogs = await fetch(API_ENDPOINTS.BOT.LOGS);
             const dataLogs = await resLogs.json();
             if (dataLogs.logs) {
                 setLogs(dataLogs.logs.reverse()); // Newest first
@@ -114,8 +115,8 @@ export default function RealBotsPage() {
   const toggleBotRequest = async (shouldRun: boolean, key?: string, secret?: string, leverage: number = 20) => {
       try {
           const token = localStorage.getItem("token");
-          const endpoint = shouldRun ? "/bot/start" : "/bot/stop";
-          const res = await fetch(`http://localhost:8000${endpoint}`, { 
+          const endpoint = shouldRun ? API_ENDPOINTS.BOT.START : API_ENDPOINTS.BOT.STOP;
+          const res = await fetch(endpoint, { 
               method: "POST",
               headers: { 
                   "Content-Type": "application/json",
@@ -164,7 +165,7 @@ export default function RealBotsPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/assistant/chat", {
+      const res = await fetch(API_ENDPOINTS.ASSISTANT.CHAT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),

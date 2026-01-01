@@ -12,6 +12,20 @@ print(f"DEBUG: Loaded HF_TOKEN...{HF_TOKEN[-6:]}")
 
 client = InferenceClient(token=HF_TOKEN)
 
+WEBSITE_CONTEXT = """
+NEURAL FLOW PLATFORM DOCUMENTATION:
+1. **DASHBOARD**: Main command center. Shows Equity, PnL, and Active Tiers.
+2. **LIVE BOT**: (Premium Only) Autonomous AI trading engine. Features:
+   - "Neural Strategist" Mode: Deep market analysis.
+   - Auto-Trading: Hands-free execution.
+3. **DEMO BOT**: Sandbox environment. Uses fake money for strategy testing.
+4. **MARKET**: Real-time charts (TradingView), sentiment analysis, and news feed.
+5. **WALLET**: Deposit (USDT/BTC) and Withdraw funds. Transaction history.
+6. **SUBSCRIPTIONS**:
+   - "Explorer" (Free): Basic access.
+   - "Elite" ($99/mo): Live Bot access, 100x leverage, Real-time Neural Stats.
+"""
+
 class AssistantRequest(BaseModel):
     message: str
     mode: str = "trading"  # "trading" or "guide"
@@ -26,7 +40,9 @@ async def chat(req: AssistantRequest):
     # --------------------------
     if req.mode == "guide":
         system_msg = (
-            "You are the Neural Flow Platform Guide. Be extremely concise (max 2 sentences). "
+            "You are the Neural Flow Platform Guide. "
+            f"Use this context to answer user questions: {WEBSITE_CONTEXT} "
+            "Be extremely concise (max 2 sentences). Professional, helpful tone. "
             "Help users navigate plan options and upgrades. DO NOT give financial advice."
         )
 
@@ -39,12 +55,16 @@ async def chat(req: AssistantRequest):
         news_context = ""
         if any(k in req.message.lower() for k in ["news", "market", "sentiment", "trend", "btc", "crypto"]):
             await news_ai.fetch_market_news()
-            signal = news_ai.get_signal()
-            news_context = f" SENTIMENT: {signal}. "
+            sig_data = news_ai.get_signal()
+            news_context = f" SENTIMENT: {sig_data['signal']}. "
 
         system_msg = (
-            "You are NeuralFlow Assistant. Be extremely concise (max 30 words). "
-            "Technical style." + news_context
+            "You are the Neural Strategist, an Elite Quantitative Trading Assistant. "
+            "Your goal is to provide sharp, actionable market insights with a professional, confident tone. "
+            f"Context: {news_context} "
+            "Do not start every message with 'Current Market Intel'. "
+            "Answer the user's specific question directly. If asked 'why', explain the reasoning behind the trends. "
+            "Be concise but natural. Use professional trading terminology where appropriate."
         )
 
     messages = [

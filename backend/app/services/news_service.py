@@ -136,7 +136,7 @@ async def request_with_retries(
             resp.raise_for_status()
             return resp
 
-        except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPStatusError) as e:
+        except Exception as e: # Catch all for retries
             last_exc = e
             sleep_s = backoff_base * (2 ** attempt) + random.random() * 0.25
             log.warning("Request error on %s %s (attempt %d/%d): %s | Sleep %.2fs",
@@ -250,8 +250,7 @@ class PostgresStore:
                         account=e.account,
                         category=e.category,
                         scope=e.scope,
-                        targets=e.targets,
-                        raw=e.raw
+                        targets=e.targets
                     )
                     db.add(sig)
                 await db.commit()
@@ -368,6 +367,7 @@ class CryptoCompareNews:
 
         url = f"{self.BASE_URL}/data/v2/news/"
         resp = await request_with_retries(self.http, "GET", url, params=params)
+        return resp.json().get("Data") or []
 # -----------------------------
 # Yahoo Finance RSS fetcher
 # -----------------------------
@@ -414,9 +414,9 @@ class YahooFinanceNews:
 @dataclass
 class EngineConfig:
     # polling (FREE-TIER SAFE)
-    news_poll_s: float = 900.0    # 15 min for news (CryptoCompare = unlimited)
-    yahoo_poll_s: float = 300.0   # 5 min for Yahoo Finance (RSS)
-    x_poll_s: float = 3600.0      # 1 HOUR for X (CRITICAL: free tier = 50 calls/day max)
+    news_poll_s: float = 60.0    # 1 min for news (CryptoCompare = unlimited)
+    yahoo_poll_s: float = 30.0   # 30 sec for Yahoo Finance (RSS)
+    x_poll_s: float = 1200.0     # 20 min for X (Reduced for activity, but careful with free tier)
 
     # decay: time for signal to halve back toward neutral (0.5)
     decay_half_life_s: float = 12 * 60.0
@@ -448,11 +448,10 @@ class EngineConfig:
 
 
 # -----------------------------
-# Main Signal Engine
-# -----------------------------
 class SignalEngine:
     def __init__(self, cfg: Optional[EngineConfig] = None):
         self.cfg = cfg or EngineConfig()
+        self.logger = None
 
         # State (0..1)
         self.sentiment_score = 0.5
@@ -549,8 +548,26 @@ class SignalEngine:
         # Persistence
         self.store = PostgresStore()
 
-        # Shutdown
+        # Shutdown & Event Bus
         self._stop = asyncio.Event()
+        self.event_q = asyncio.Queue(maxsize=self.cfg.queue_maxsize)
+
+    def set_logger(self, logger_func):
+        self.logger = logger_func
+
+    def log_msg(self, msg: str, level: str = "INFO"):
+        if self.logger:
+            try:
+                # Check if the logger supports the module argument (BotManager.log does)
+                self.logger(msg, level, module="NewsEngine")
+            except TypeError:
+                self.logger(msg, level)
+        if level == "INFO":
+            log.info(msg)
+        elif level == "WARNING":
+            log.warning(msg)
+        elif level == "ERROR":
+            log.error(msg)
 
     async def close(self):
         self._stop.set()
@@ -653,6 +670,9 @@ class SignalEngine:
         - global shift (small)
         - targeted shift (larger)
         """
+        # Cap impact to prevent runaway bias
+        impact = max(-0.4, min(0.4, impact))
+
         # Global
         self.sentiment_score = clamp01(self.sentiment_score + impact * 0.10)
 
@@ -663,21 +683,56 @@ class SignalEngine:
 
     def _apply_news_impact(self, heuristic_score: float):
         """
-        Convert heuristic [-1..1] to 0..1 sentiment and update global sentiment.
-        This keeps the spirit of your original approach.
+        News should SHIFT, not RESET.
         """
-        mapped = (heuristic_score + 1.0) / 2.0  # -1..1 -> 0..1
-        self.sentiment_score = clamp01(mapped)
+        impact = heuristic_score * 0.08  # small, controlled
+        before = self.sentiment_score
+        self.sentiment_score = clamp01(self.sentiment_score + impact)
+        after = self.sentiment_score
+        
+        self.log_msg(f"NEWS_IMPACT | before={before:.3f} score={heuristic_score:+.2f} impact={impact:+.3f} after={after:.3f}")
 
     # -------------------------
     # Public getters
     # -------------------------
-    def get_signal(self) -> str:
+    def get_signal(self) -> dict:
+        """
+        Calculates signal, confidence, and drivers (Roadmap Phase 3).
+        """
+        signal = "NEUTRAL"
         if self.sentiment_score > 0.62:
-            return "BULLISH"
-        if self.sentiment_score < 0.38:
-            return "BEARISH"
-        return "NEUTRAL"
+            signal = "BULLISH"
+        elif self.sentiment_score < 0.38:
+            signal = "BEARISH"
+
+        drivers = []
+        confidence = 0.0
+
+        # 1. Base confidence from news volume
+        news_count = len(self.cached_news)
+        base = min(0.5, news_count * 0.1)
+        confidence += base
+        if base > 0:
+            drivers.append("CUMULATIVE_NEWS_FLOW")
+
+        # 2. Alpha bonus
+        if self.alpha_events:
+            confidence += 0.3
+            drivers.append("X_ALPHA_CONFIRMED")
+
+        # 3. Extremity bonus
+        if self.sentiment_score > 0.75 or self.sentiment_score < 0.25:
+            confidence += 0.2
+            drivers.append("EXTREME_SENTIMENT")
+
+        # Final Normalization (min 1.0)
+        confidence = min(1.0, confidence)
+
+        return {
+            "signal": signal,
+            "confidence": round(confidence, 2),
+            "drivers": drivers
+        }
 
     def get_coin_bias(self, coin: str) -> float:
         return float(self.coin_sentiment.get(coin.upper(), 0.5))
@@ -691,6 +746,22 @@ class SignalEngine:
     
     async def check_trading_window(self):
         """Returns the current trading status for the API."""
+        now = datetime.now(timezone.utc)
+        weekday = now.weekday()  # 0=Monday, 6=Sunday
+        hour = now.hour
+        
+        if weekday >= 5: # Saturday or Sunday
+            return "WEEKEND_LOW_LIQUIDITY"
+        
+        if weekday == 0 and hour < 4:
+            return "MONDAY_OPEN_GAP_RISK"
+            
+        if 13 <= hour <= 20: # 1:00 PM - 8:00 PM UTC
+            return "NY_INSTITUTIONAL_PEAK"
+        
+        if 8 <= hour <= 12: # 8 AM - 12 PM UTC
+            return "LONDON_LIQUIDITY_SURGE"
+            
         return "Active - High Liquidity Window"
 
     async def scan_influencer_alpha(self) -> Optional[dict]:
@@ -820,9 +891,12 @@ class SignalEngine:
     # Producers: NEWS
     # -------------------------
     async def _produce_news(self):
+        self.log_msg("📡 Initializing News Ingestion Protocol (CryptoCompare)...")
         while not self._stop.is_set():
             try:
+                self.log_msg("🔍 Syncing latest market intelligence from CryptoCompare...")
                 items = await self.cc.fetch_latest(limit=self.cfg.max_cached_news)
+                self.log_msg(f"✅ CryptoCompare: Successfully synchronized {len(items)} neural data points.")
                 new_events: List[Event] = []
 
                 for it in items:
@@ -839,6 +913,13 @@ class SignalEngine:
                     if event_id in self.seen_news:
                         continue
                     self.seen_news.add(event_id)
+
+                    # CONTENT HASH DEDUPLICATION
+                    content_key = f"HASH|{(title or '')[:80]}|{(body or '')[:120]}"
+                    if content_key in self.seen_news:
+                        log.debug(f"Skipping duplicate news (content hash match): {title[:50]}")
+                        continue
+                    self.seen_news.add(content_key)
 
                     text = f"{title} {body}"
                     score = self.scorer.score(text)
@@ -872,7 +953,7 @@ class SignalEngine:
                     await self.event_q.put(ev)
 
             except Exception as e:
-                log.warning("NEWS producer error: %s", e)
+                self.log_msg(f"NEWS producer error: {e}", "WARNING")
 
             await asyncio.sleep(self.cfg.news_poll_s)
 
@@ -891,7 +972,7 @@ class SignalEngine:
                 # STEP 12: Cycle-based caching (approx once per hour at 10-15m cycle)
                 self.cycle_count += 1
                 if self.cycle_count % 6 != 0:
-                    log.info("X producer: Skipping cycle (Cycle Cache)")
+                    self.log_msg("X producer: Skipping cycle (Cycle Cache)")
                     await asyncio.sleep(self.cfg.x_poll_s)
                     continue
 
@@ -1001,10 +1082,10 @@ class SignalEngine:
                             await self.event_q.put(ev)
 
                     except Exception as e:
-                        log.warning("X recent search error: %s", e)
+                        self.log_msg(f"X recent search error: {e}", "WARNING")
 
             except Exception as e:
-                log.warning("X producer error: %s", e)
+                self.log_msg(f"X producer error: {e}", "WARNING")
 
             await asyncio.sleep(self.cfg.x_poll_s)
 
@@ -1035,6 +1116,7 @@ class SignalEngine:
                 for e in buffer:
                     if e.type == "NEWS":
                         self._apply_news_impact(e.heuristic_score)
+                        self.log_msg(f"🧠 NEURAL_ANALYSIS: News Sentiment Resolved [{e.heuristic_score:+.2f}] | {e.title[:60]}...")
                         # cache
                         self.cached_news = ([{
                             "type": "NEWS",
@@ -1047,6 +1129,7 @@ class SignalEngine:
 
                     elif e.type == "SOCIAL_SIGNAL":
                         self._apply_social_impact(e.weighted_impact, e.targets or ["MARKET"], e.scope or "GLOBAL")
+                        self.log_msg(f"🧠 NEURAL_DECODER: Alpha Signal Decoded [{e.weighted_impact:+.2f}] | Source: @{e.account} | targets={e.targets}")
 
                         alpha_item = {
                             "type": "SOCIAL_SIGNAL",
@@ -1068,7 +1151,7 @@ class SignalEngine:
                 try:
                     await self.store.insert_events(buffer)
                 except Exception as e:
-                    log.warning("DB insert events failed: %s", e)
+                    self.log_msg(f"DB insert events failed: {e}", "WARNING")
 
                 buffer.clear()
                 last_flush = now
@@ -1084,33 +1167,26 @@ class SignalEngine:
                         {k: float(v) for k, v in self.coin_sentiment.items()},
                     )
                 except Exception as e:
-                    log.warning("DB insert snapshot failed: %s", e)
+                    self.log_msg(f"DB insert snapshot failed: {e}", "WARNING")
                 last_snapshot = now
 
             # Periodic printing
             if (now - last_print) >= self.cfg.print_every_s:
                 snap = self.snapshot()
-                log.info(
-                    "SNAPSHOT | %s | global=%.3f | BTC=%.3f ETH=%.3f SOL=%.3f DOGE=%.3f LINK=%.3f",
-                    snap["global_signal"],
-                    snap["global_sentiment"],
-                    snap["coin_bias"]["BTC"],
-                    snap["coin_bias"]["ETH"],
-                    snap["coin_bias"]["SOL"],
-                    snap["coin_bias"]["DOGE"],
-                    snap["coin_bias"]["LINK"],
+                self.log_msg(
+                    f"SNAPSHOT | {snap['global_signal']} | global={snap['global_sentiment']:.3f} | BTC={snap['coin_bias']['BTC']:.3f} ETH={snap['coin_bias']['ETH']:.3f} SOL={snap['coin_bias']['SOL']:.3f} DOGE={snap['coin_bias']['DOGE']:.3f} LINK={snap['coin_bias']['LINK']:.3f}"
                 )
                 if snap["alpha_events"]:
                     top = snap["alpha_events"][0]
-                    log.info(
-                        "ALPHA | %s @%s | impact=%s | targets=%s | %s",
-                        top.get("category"),
-                        top.get("account"),
-                        top.get("impact"),
-                        top.get("targets"),
-                        (top.get("content") or "").replace("\n", " "),
+                    self.log_msg(
+                        f"ALPHA | {top.get('category')} @{top.get('account')} | impact={top.get('impact')} | targets={top.get('targets')} | {(top.get('content') or '').replace('/n', ' ')}"
                     )
                 last_print = now
+            
+            # Heartbeat to show consumer is alive
+            if (now - last_flush) >= 30.0:
+                self.log_msg("💓 Neural Processor Heartbeat: Monitoring event bus...")
+                last_flush = now
 
         # Final flush on stop
         if buffer:
@@ -1123,10 +1199,11 @@ class SignalEngine:
 
     async def _produce_yahoo(self):
         """Producer: Yahoo Finance RSS"""
+        self.log_msg("📡 Initializing Alpha Feed: Yahoo Finance RSS...")
         while not self._stop.is_set():
             try:
                 # 1. Fetch
-                log.info("Fetching Yahoo Finance RSS...")
+                self.log_msg("🔍 Scanning Yahoo Finance RSS for institutional shifts...")
                 items = await self.yf.fetch_latest()
                 
                 # 2. Convert to Events
@@ -1162,7 +1239,7 @@ class SignalEngine:
 
                 # 3. Ingest
                 if buffer:
-                    log.info(f"Ingesting {len(buffer)} items from Yahoo Finance")
+                    self.log_msg(f"Ingesting {len(buffer)} items from Yahoo Finance")
                     # Apply impact immediately
                     for e in buffer:
                         self.cached_news.insert(0, asdict(e))
@@ -1179,7 +1256,7 @@ class SignalEngine:
                     except: pass
                     
             except Exception as e:
-                log.warning(f"Yahoo producer error: {e}")
+                self.log_msg(f"Yahoo producer error: {e}", "WARNING")
 
             # Sleep
             await asyncio.sleep(self.cfg.yahoo_poll_s)
@@ -1188,10 +1265,11 @@ class SignalEngine:
     # Public: run engine
     # -------------------------
     async def run(self):
+        self.log_msg("🚀 GLOBAL NEURAL ENGINE ACTIVATED")
+        self.log_msg(f"⚙️ Configuration: Poll_News={self.cfg.news_poll_s}s | Poll_Yahoo={self.cfg.yahoo_poll_s}s | Poll_X={self.cfg.x_poll_s}s")
         tasks = [
             asyncio.create_task(self._produce_news(), name="producer_news"),
             asyncio.create_task(self._produce_yahoo(), name="producer_yahoo"),
-            asyncio.create_task(self._produce_x(), name="producer_x"),
             asyncio.create_task(self._produce_x(), name="producer_x"),
             asyncio.create_task(self._consume_events(), name="consumer"),
         ]

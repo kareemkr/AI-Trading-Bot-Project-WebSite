@@ -10,6 +10,7 @@ import type { Trade } from "@/components/bot/trade-bubble";
 import SubscriptionModal from "@/components/ui/subscription-modal";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { API_ENDPOINTS } from "@/lib/api";
 
 /* ----------------------------------
    SAFE ID GENERATOR (NO crypto)
@@ -147,7 +148,7 @@ PnL: **${pnl > 0 ? "+" : ""}${pnl}%**`,
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/assistant/chat", {
+      const res = await fetch(API_ENDPOINTS.ASSISTANT.CHAT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text }),

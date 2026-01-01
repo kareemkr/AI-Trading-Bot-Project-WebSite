@@ -4,6 +4,7 @@ import type React from "react"
 import { DashboardSidebar } from "@/components/dashboard/sidebar"
 import { useEffect, useState } from "react"
 import SubscriptionModal from "@/components/ui/subscription-modal"
+import { API_BASE_URL } from "@/lib/api"
 
 export default function DashboardLayout({
   children,
@@ -62,7 +63,11 @@ export default function DashboardLayout({
                 }`}
               >
                 {user?.avatar ? (
-                  <img src={user.avatar || "/placeholder.svg"} className="w-full h-full object-cover" alt="Avatar" />
+                  <img 
+                    src={user.avatar.startsWith("/") ? `${API_BASE_URL}${user.avatar}` : user.avatar} 
+                    className="w-full h-full object-cover" 
+                    alt="Avatar" 
+                  />
                 ) : (
                   (user?.name?.[0] || "T").toUpperCase()
                 )}
@@ -71,7 +76,7 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-background via-background/95 to-background">
+        <div className="flex-1 overflow-y-auto no-scrollbar bg-gradient-to-b from-background via-background/95 to-background">
           {children}
         </div>
       </main>

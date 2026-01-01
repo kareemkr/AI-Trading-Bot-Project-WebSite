@@ -14,6 +14,7 @@ import {
   Newspaper,
   BarChart3,
 } from "lucide-react";
+import { API_ENDPOINTS } from "@/lib/api";
 import type { Trade } from "./trade-bubble";
 
 interface ToolsSidebarProps {
@@ -63,8 +64,8 @@ export function ToolsSidebar({
   const fetchFeed = async () => {
     try {
       const [alphaRes, newsRes] = await Promise.all([
-        fetch("http://localhost:8000/news/alpha"),
-        fetch("http://localhost:8000/news/latest")
+        fetch(API_ENDPOINTS.NEWS.ALPHA),
+        fetch(API_ENDPOINTS.NEWS.LATEST)
       ]);
 
       let combined: any[] = [];
@@ -113,7 +114,7 @@ export function ToolsSidebar({
         if (!token) throw new Error("Please sign in first.");
 
         // 1. Verify on Backend
-        const verifyRes = await fetch("http://localhost:8000/account/verify-keys?api_key=" + binanceKey + "&api_secret=" + binanceSecret, {
+        const verifyRes = await fetch(`${API_ENDPOINTS.ACCOUNT.VERIFY_KEYS}?api_key=${binanceKey}&api_secret=${binanceSecret}`, {
             method: "POST"
         });
         const verifyData = await verifyRes.json();
@@ -123,7 +124,7 @@ export function ToolsSidebar({
         }
 
         // 2. Persist to Profile
-        const saveRes = await fetch("http://localhost:8000/auth/update", {
+        const saveRes = await fetch(API_ENDPOINTS.AUTH.UPDATE, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -217,9 +218,26 @@ export function ToolsSidebar({
 
         {/* Live Market Intelligence Feed */}
         <div className="relative mt-6 p-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 overflow-hidden">
-            <h3 className="text-xs font-black uppercase tracking-widest text-indigo-400 mb-4 flex items-center gap-2">
-                <Newspaper className="w-3.5 h-3.5" /> Market Intelligence
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xs font-black uppercase tracking-widest text-indigo-400 flex items-center gap-2">
+                    <Newspaper className="w-3.5 h-3.5" /> Market Intelligence
+                </h3>
+                {(() => {
+                    const day = new Date().getDay();
+                    if (day === 0 || day === 6) {
+                        return (
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-orange-500/10 border border-orange-500/20 rounded-md">
+                                <span className="text-[7px] font-black text-orange-500 uppercase tracking-tighter">LOW LIQUIDITY</span>
+                            </div>
+                        );
+                    }
+                    return (
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md">
+                            <span className="text-[7px] font-black text-emerald-500 uppercase tracking-tighter">HIGH LIQUIDITY</span>
+                        </div>
+                    );
+                })()}
+            </div>
             <div className="space-y-4">
                 {alphaFeed.length > 0 ? (
                     alphaFeed.map((news, i) => (

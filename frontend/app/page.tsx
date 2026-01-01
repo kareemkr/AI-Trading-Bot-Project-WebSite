@@ -14,7 +14,7 @@ export default function Home() {
   const [isSubOpen, setIsSubOpen] = React.useState(false);
 
   return (
-    <main className="min-h-screen bg-background relative overflow-hidden">
+    <main className="min-h-screen bg-background relative overflow-hidden pb-24 sm:pb-0">
       <Header />
       <TradingChart />
 

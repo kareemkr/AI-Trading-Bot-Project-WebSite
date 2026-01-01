@@ -3,6 +3,7 @@
 import { X, Copy, Check, Star, Zap, Shield, ChevronLeft, CreditCard } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { API_ENDPOINTS } from "@/lib/api";
 
 interface SubscriptionModalProps {
   open: boolean;
@@ -62,7 +63,7 @@ export default function SubscriptionModal({
       const userStr = localStorage.getItem("user");
       const user = JSON.parse(userStr!);
 
-      const res = await fetch("http://localhost:8000/payment/crypto-confirm", {
+      const res = await fetch(API_ENDPOINTS.PAYMENT.CRYPTO_CONFIRM, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
