@@ -2,6 +2,7 @@ from fastapi import APIRouter
 import os
 from pydantic import BaseModel
 from huggingface_hub import InferenceClient
+from datetime import datetime
 
 router = APIRouter(prefix="/assistant", tags=["Assistant"])
 
@@ -34,6 +35,7 @@ class AssistantRequest(BaseModel):
 async def chat(req: AssistantRequest):
 
     system_msg = ""
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     # --------------------------
     # PLATFORM GUIDE MODE
@@ -41,6 +43,7 @@ async def chat(req: AssistantRequest):
     if req.mode == "guide":
         system_msg = (
             "You are the Neural Flow Platform Guide. "
+            f"Current System Time: {current_time}. "
             f"Use this context to answer user questions: {WEBSITE_CONTEXT} "
             "Be extremely concise (max 2 sentences). Professional, helpful tone. "
             "Help users navigate plan options and upgrades. DO NOT give financial advice."
@@ -60,6 +63,7 @@ async def chat(req: AssistantRequest):
 
         system_msg = (
             "You are the Neural Strategist, an Elite Quantitative Trading Assistant. "
+            f"Current Date/Time: {current_time}. "
             "Your goal is to provide sharp, actionable market insights with a professional, confident tone. "
             f"Context: {news_context} "
             "Do not start every message with 'Current Market Intel'. "
