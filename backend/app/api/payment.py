@@ -13,6 +13,7 @@ class CryptoConfirmData(BaseModel):
     wallet_address: str
     plan_name: str # "pro" or "elite"
     duration: str = "monthly"
+    reference_id: str = None
 
 @router.post("/crypto-confirm")
 async def crypto_confirm(data: CryptoConfirmData, db: AsyncSession = Depends(get_db)):
@@ -27,6 +28,13 @@ async def crypto_confirm(data: CryptoConfirmData, db: AsyncSession = Depends(get
     # MOCK VERIFICATION: Ensure hash is long enough to be real
     if len(data.tx_hash) < 10:
         raise HTTPException(status_code=400, detail="Invalid transaction hash")
+
+    # Check for duplicate hash to prevent reuse
+    from app.models.wallet import Transaction
+    from sqlalchemy import select
+    existing_tx = await db.execute(select(Transaction).where(Transaction.tx_hash == data.tx_hash))
+    if existing_tx.scalars().first():
+        raise HTTPException(status_code=400, detail="This transaction hash has already been submitted.")
 
     # Create Transaction Record
     from app.models.wallet import Transaction, Wallet
@@ -47,7 +55,8 @@ async def crypto_confirm(data: CryptoConfirmData, db: AsyncSession = Depends(get
         type="deposit",
         amount=0, # Amount depends on plan, but for now we just log the intent
         status="completed", # Auto-confirming for now as requested, but logged
-        external_id=data.tx_hash,
+        external_id=data.reference_id or data.tx_hash,
+        tx_hash=data.tx_hash,
         source="CRYPTO_PAYMENT",
         reference=f"Subscription: {data.plan_name}"
     )
