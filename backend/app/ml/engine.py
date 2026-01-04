@@ -84,7 +84,11 @@ class RealTradingBot:
         secret = api_secret or os.getenv("BINANCE_API_SECRET")
 
         if not key or not secret:
-            self.log("⚠️ No Binance keys provided. Entering SHADOW MODE (Signal Only).")
+            self.log("⚠️ SHADOW MODE ENABLED ⚠️ | Binance API keys missing. NO REAL TRADES WILL BE EXECUTED.", level="CRITICAL")
+            print("\n" + "="*60)
+            print("⚠️ SHADOW MODE ACTIVE – NO REAL FUNDS AT RISK")
+            print("⚠️ Missing Binance API credentials")
+            print("="*60 + "\n")
             self.is_virtual = True
             self.client = self.public_client
             return
@@ -93,8 +97,9 @@ class RealTradingBot:
             self.client = Client(key, secret)
             self.is_virtual = False
             self.log("✅ Securely connected to Binance Protocol.")
+            self.log("🚨 LIVE TRADING ENABLED – REAL ORDERS WILL BE SENT")
         except Exception as e:
-            self.log(f"❌ Connection failed: {e}. Falling back to SHADOW MODE.")
+            self.log(f"❌ Connection failed: {e}. Falling back to SHADOW MODE.", level="ERROR")
             self.is_virtual = True
             self.client = self.public_client
 

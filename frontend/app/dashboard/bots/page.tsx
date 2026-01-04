@@ -150,10 +150,9 @@ export default function BotsPage() {
     setIsStarting(true);
     try {
       const token = localStorage.getItem("token");
-      const binanceKey = localStorage.getItem("binance_key");
-      const binanceSecret = localStorage.getItem("binance_secret");
-
-      if (!token) {
+      const userRaw = localStorage.getItem("user");
+      
+      if (!token || !userRaw) {
         toast.error("Session Expired", {
             description: "Please sign in again to start the bot."
         });
@@ -161,13 +160,17 @@ export default function BotsPage() {
         return;
       }
 
+      const user = JSON.parse(userRaw);
+      const binanceKey = user.binance_api_key;
+      const binanceSecret = user.binance_api_secret;
+
       if (!binanceKey || !binanceSecret) {
         toast.info("Entering Shadow Mode", {
-            description: "No Binance keys found. Bot will generate signals and patterns without real execution."
+            description: "No Binance keys found in your profile. Bot will generate signals and patterns without real execution."
         });
       }
 
-      const useNewsAI = JSON.parse(localStorage.getItem("user") || "{}").news_analysis_ai || false;
+      const useNewsAI = user.news_analysis_ai || false;
 
       console.log("Starting bot with token:", token ? "Token present" : "Token MISSING");
 

@@ -37,8 +37,8 @@ export function FloatingNav({ onOpenSubscription, isHomePage = false }: Floating
                 description: "Please sign in to view your profile.",
                 duration: 4000,
                 action: {
-                    label: "Sign In",
-                    onClick: () => window.location.href = "/signin"
+                    label: "Sign Up",
+                    onClick: () => window.location.href = "/signup"
                 }
             });
             return;
@@ -47,33 +47,20 @@ export function FloatingNav({ onOpenSubscription, isHomePage = false }: Floating
         return;
     }
 
-    // If on homepage, restrict access unless subscribed (or navigating to Demo)
-    if (isHomePage) {
-      if (name === t.nav.demo_bot) {
-        window.location.href = href;
-        return;
-      }
-      
-      // If user is NOT subscribed, show modal and block access
-      if (!isPremiumUser() && onOpenSubscription) {
-        onOpenSubscription();
-        return;
-      }
-    }
-
-    // Check authentication requirement
-    if (requiresAuth && !isAuthenticated()) {
+    // Auth check first - everything clicked on refers to signup page when not signed in
+    if (!isAuthenticated()) {
       toast.error("Authentication Required", {
-        description: "Please sign in to access this feature.",
+        description: "Please sign up to access the ecosystem features.",
         duration: 4000,
         action: {
-          label: "Sign In",
-          onClick: () => window.location.href = "/signin"
+          label: "Sign Up",
+          onClick: () => window.location.href = "/signup"
         }
       });
       return;
     }
 
+    // From here on, user is authenticated
     // Check premium requirement
     if (requiresPremium && !isPremiumUser()) {
       toast.error("Elite Access Required", {
@@ -99,7 +86,7 @@ export function FloatingNav({ onOpenSubscription, isHomePage = false }: Floating
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 w-full z-50 sm:bottom-8 sm:left-1/2 sm:-translate-x-1/2 sm:w-auto sm:max-w-[calc(100vw-2rem)]">
-      <div className="flex items-center justify-between sm:justify-start gap-1.5 px-6 py-4 sm:px-3 sm:py-2.5 backdrop-blur-md bg-black/40 border-t border-white/5 sm:border sm:border-border/40 sm:bg-card/80 sm:backdrop-blur-2xl sm:shadow-2xl sm:shadow-black/10 sm:ring-1 sm:ring-white/5 sm:transition-all sm:hover:scale-[1.01] sm:overflow-x-auto sm:no-scrollbar sm:rounded-full">
+      <div className="flex items-center justify-between sm:justify-start sm:w-fit sm:mx-auto gap-1.5 sm:gap-4 px-6 sm:px-0 py-4 sm:py-2.5 backdrop-blur-md bg-black/40 border-t border-white/5 sm:border sm:border-border/40 sm:bg-card/80 sm:backdrop-blur-2xl sm:shadow-2xl sm:shadow-black/10 sm:ring-1 sm:ring-white/5 sm:transition-all sm:hover:scale-[1.01] sm:overflow-x-auto sm:no-scrollbar sm:rounded-full">
         {/* Logo - Hidden on mobile, visible on desktop */}
         <div className="hidden sm:flex w-12 h-12 rounded-full overflow-hidden border border-white/20 shadow-lg shadow-accent/10 items-center justify-center bg-black">
           <BrainCircuit className="w-6 h-6 text-accent" />
@@ -124,7 +111,7 @@ export function FloatingNav({ onOpenSubscription, isHomePage = false }: Floating
         ))}
 
         {/* Theme Toggle */}
-        <div className="ml-1 pr-1 border-l border-white/10 pl-2">
+        <div className="ml-4 border-l border-white/10 pl-4">
             <ThemeToggle compact />
         </div>
       </div>

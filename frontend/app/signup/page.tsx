@@ -4,14 +4,13 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
-  User, 
+  User,
   Mail, 
   Lock, 
   Eye, 
   EyeOff, 
   ArrowRight,
   Home,
-  Sparkles,
   ShieldCheck,
   BrainCircuit
 } from "lucide-react";
@@ -40,11 +39,7 @@ export default function SignupPage() {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.detail || "Signup failed");
-      }
-
+      if (!res.ok) throw new Error(data.detail || "Signup failed");
       router.push("/signin");
     } catch (err: any) {
       setError(err.message);
@@ -63,35 +58,27 @@ export default function SignupPage() {
       {/* Top Nav */}
       <div className="absolute top-8 left-8 right-8 flex justify-between items-center z-20">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-xl group-hover:border-accent/40 transition-all">
-            <BrainCircuit className="w-5 h-5 text-accent" />
+          <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center backdrop-blur-xl group-hover:border-accent/40 transition-all">
+            <BrainCircuit className="w-6 h-6 text-accent" />
           </div>
-          <span className="text-white font-black uppercase italic tracking-tighter group-hover:text-accent transition-colors">Neural Flow</span>
+          <span className="text-white font-black text-2xl uppercase italic tracking-tighter group-hover:text-accent transition-colors">Neural Flow</span>
         </Link>
         <Link 
             href="/" 
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 text-white/70 hover:text-white hover:bg-white/10 transition-all text-sm font-bold backdrop-blur-md group"
+            className="flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 border border-white/10 text-white hover:text-white hover:bg-white/10 transition-all text-sm font-bold backdrop-blur-md group"
         >
             <Home className="w-4 h-4 text-accent" />
             <span>Homepage</span>
         </Link>
       </div>
 
-      <div className="w-full max-w-[440px] z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      <div className="w-full max-w-[460px] z-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
         <div className="text-center mb-10">
-          <div className="inline-flex relative mb-6">
-            <div className="absolute inset-0 bg-accent/20 blur-2xl rounded-full animate-pulse" />
-            <div className="relative w-24 h-24 rounded-[2.5rem] bg-black/40 border-2 border-white/10 flex items-center justify-center shadow-2xl backdrop-blur-2xl group overflow-hidden">
-                <BrainCircuit className="w-12 h-12 text-accent" />
-            </div>
-            <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-2xl bg-accent flex items-center justify-center shadow-lg shadow-accent/40 animate-bounce">
-                <Sparkles className="w-5 h-5 text-black" />
-            </div>
-          </div>
-          <h1 className="text-5xl font-black tracking-tighter text-white uppercase italic">
+          {/* Header Title - Increased Size */}
+          <h1 className="text-6xl font-black tracking-tighter text-white uppercase italic">
             Create <span className="text-accent">Account</span>
           </h1>
-          <p className="text-white/40 font-bold uppercase tracking-[0.2em] text-[10px] mt-4">
+          <p className="text-white/60 font-bold uppercase tracking-[0.3em] text-[12px] mt-6">
             Join the future of algorithmic trading
           </p>
         </div>
@@ -100,11 +87,13 @@ export default function SignupPage() {
             {/* Glow effect around the container */}
             <div className="absolute -inset-1 bg-gradient-to-r from-accent/20 via-emerald-500/20 to-accent/20 rounded-[3rem] blur-xl opacity-50 group-hover:opacity-100 transition duration-1000" />
             
-            <div className="relative bg-[#0a0f1d]/80 backdrop-blur-3xl p-10 rounded-[3rem] border border-white/5 shadow-2xl overflow-hidden">
+            <div className="relative bg-[#0a0f1d]/80 backdrop-blur-3xl p-10 rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden">
               {/* Scanline Effect */}
               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/[0.02] to-transparent h-[200%] -translate-y-full animate-[scanline_8s_linear_infinite] pointer-events-none" />
               
               <div className="space-y-6">
+                
+                {/* Google Button */}
                 <button
                   type="button"
                   onClick={() => window.location.href = `${API_BASE_URL}/oauth/login/google`}
@@ -124,11 +113,11 @@ export default function SignupPage() {
                   <span className="relative bg-[#0d1425] px-4 text-[9px] font-black uppercase tracking-[0.3em] text-white/20">Or register with email</span>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="group/input relative">
-                    <User className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within/input:text-accent transition-colors" />
+                    <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within/input:text-accent transition-colors" />
                     <input
-                      className="w-full pl-14 pr-5 py-5 rounded-2xl border border-white/5 bg-black/40 text-[13px] font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all shadow-inner"
+                      className="w-full pl-16 pr-6 py-5 rounded-2xl border border-white/10 bg-black/40 text-base font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-accent/40 transition-all shadow-inner"
                       placeholder="Full Name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
@@ -137,10 +126,10 @@ export default function SignupPage() {
                   </div>
 
                   <div className="group/input relative">
-                    <Mail className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within/input:text-accent transition-colors" />
+                    <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within/input:text-accent transition-colors" />
                     <input
                       type="email"
-                      className="w-full pl-14 pr-5 py-5 rounded-2xl border border-white/5 bg-black/40 text-[13px] font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all shadow-inner"
+                      className="w-full pl-16 pr-6 py-5 rounded-2xl border border-white/10 bg-black/40 text-base font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-accent/40 transition-all shadow-inner"
                       placeholder="Email Address"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -149,10 +138,10 @@ export default function SignupPage() {
                   </div>
 
                   <div className="group/input relative">
-                    <Lock className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within/input:text-accent transition-colors" />
+                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within/input:text-accent transition-colors" />
                     <input
                       type={showPassword ? "text" : "password"}
-                      className="w-full pl-14 pr-14 py-5 rounded-2xl border border-white/5 bg-black/40 text-[13px] font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-accent/40 focus:ring-4 focus:ring-accent/5 transition-all shadow-inner"
+                      className="w-full pl-16 pr-16 py-5 rounded-2xl border border-white/10 bg-black/40 text-base font-medium text-white placeholder:text-white/20 focus:outline-none focus:border-accent/40 transition-all shadow-inner"
                       placeholder="Password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -161,7 +150,7 @@ export default function SignupPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
+                      className="absolute right-6 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -177,13 +166,23 @@ export default function SignupPage() {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-6 rounded-2xl bg-accent text-black font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-accent/20 hover:shadow-accent/40 hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale relative group/btn"
+                    className="w-full py-6 rounded-2xl bg-accent text-black font-black uppercase italic tracking-[0.1em] text-sm shadow-xl hover:shadow-accent/40 hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                   >
-                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500 rounded-2xl overflow-hidden" />
+                    {/* FIXED: Removed the sliding grey div */}
                     <span className="relative z-10">{isLoading ? "Creating Account..." : "Create Account"}</span>
-                    <ArrowRight className="w-5 h-5 relative z-10 group-hover/btn:translate-x-1 transition-transform" />
+                    <ArrowRight className="w-5 h-5 relative z-10" />
                   </button>
                 </form>
+
+                <p className="text-center mt-12 text-[13px] font-bold uppercase tracking-[0.2em] text-white/60">
+                  Already have an account?{" "}
+                  <button
+                    onClick={() => router.push("/signin")}
+                    className="text-accent hover:text-white transition-all font-black border-b-2 border-accent/30 hover:border-white pb-0.5 ml-2"
+                  >
+                    Sign In
+                  </button>
+                </p>
 
                 <div className="flex items-center justify-center gap-3 mt-8">
                     <ShieldCheck className="w-4 h-4 text-accent/40" />
@@ -192,16 +191,6 @@ export default function SignupPage() {
               </div>
             </div>
         </div>
-
-        <p className="text-center mt-12 text-[11px] font-black uppercase tracking-widest text-white/30">
-          Already have an account?{" "}
-          <button
-            onClick={() => router.push("/signin")}
-            className="text-accent hover:text-white transition-colors font-black border-b border-accent/20 pb-0.5"
-          >
-            Sign in
-          </button>
-        </p>
       </div>
     </main>
   );

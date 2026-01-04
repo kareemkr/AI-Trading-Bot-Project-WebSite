@@ -2,6 +2,9 @@
 
 import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { isAuthenticated, getCurrentUser } from "@/lib/auth";
 
 const plans = [
   {
@@ -51,12 +54,17 @@ const plans = [
   }
 ];
 
-export function Pricing() {
+interface PricingProps {
+  onOpenSubscription?: () => void;
+}
+
+export function Pricing({ onOpenSubscription }: PricingProps) {
+  const router = useRouter();
   return (
     <section className="py-24 px-6 relative" id="pricing">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16 space-y-4">
-          <h2 className="text-4xl md:text-5xl font-black uppercase italic tracking-tighter">Choose Your Deployment.</h2>
+          <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Choose Your Deployment.</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto font-medium">
             Whether you're testing the waters or deploying deep capital, I've built a tier that fits your ambition. No hidden fees, just raw performance.
           </p>
@@ -101,7 +109,50 @@ export function Pricing() {
               </div>
 
               <Button 
-                onClick={() => window.location.href = "/signup"}
+                onClick={() => {
+                  if (!isAuthenticated()) {
+                    router.push('/signup');
+                    return;
+                  }
+
+                  const user = getCurrentUser();
+                  const tier = user?.subscription_status?.toLowerCase();
+                  
+                  // Already Subscribed
+                  if ((tier === 'pro' || tier === 'elite') && (plan.name === 'Free' || plan.name === 'Pro')) {
+                    toast.success('Subscription Active', {
+                      description: `You are currently on the ${tier.toUpperCase()} tier.`
+                    });
+                    return;
+                  }
+
+                  // Handle different plan clicks
+                  if (plan.name === 'Free') {
+                    toast.info('Free Tier Active', {
+                      description: "Your account is already configured for the standard neural gateway."
+                    });
+                  } else if (plan.name === 'Pro') {
+                    if (onOpenSubscription) {
+                      onOpenSubscription();
+                    } else {
+                      toast.loading('Initializing Secure Gateway', {
+                        description: "Establishing neural link for Pro deployment...",
+                        duration: 3000,
+                      });
+                      setTimeout(() => {
+                          toast.info("Elite Access Provisioning", {
+                              description: "Contact developer via the support channel for manual tier upgrade.",
+                          });
+                      }, 3000);
+                    }
+                  } else if (plan.name === 'Enterprise') {
+                    if (onOpenSubscription) {
+                        onOpenSubscription();
+                    } else {
+                        window.location.href = "mailto:kareem@gmail.com?subject=Enterprise Deployment Query";
+                    }
+                  }
+                }}
                 className={`w-full py-7 rounded-[1.5rem] font-black uppercase tracking-widest text-xs transition-all ${
                   plan.highlight 
                     ? "bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg shadow-accent/20" 

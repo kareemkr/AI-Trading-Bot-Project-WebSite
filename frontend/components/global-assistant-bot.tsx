@@ -88,50 +88,55 @@ export function GlobalAssistantBot() {
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 font-sans">
             {/* Chat Window */}
             {isOpen && (
-                <div className="w-[360px] sm:w-[400px] h-[600px] bg-[#020617]/90 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300 relative group">
-                    {/* Background Noise & Glow */}
-                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
-                    <div className="absolute top-0 right-0 w-[300px] h-[300px] bg-accent/5 rounded-full blur-[100px] -z-10" />
+                <div className="w-[380px] sm:w-[420px] h-[640px] bg-[#020817]/95 backdrop-blur-3xl border border-white/5 rounded-[3rem] shadow-[0_48px_128px_-32px_rgba(0,0,0,1)] flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-500 relative">
+                    
+                    {/* Background Accents */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-[100px] pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
 
                     {/* Header */}
-                    <div className="p-5 border-b border-white/5 flex items-center justify-between relative z-10 bg-white/5 backdrop-blur-sm">
-                        <div className="flex items-center gap-4">
-                            <div className="relative">
-                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent/20 to-emerald-500/10 border border-white/10 flex items-center justify-center shadow-lg shadow-accent/10">
-                                    <BrainCircuit className="w-6 h-6 text-accent" />
+                    <div className="px-8 py-7 flex items-center justify-between relative z-10">
+                        <div className="flex items-center gap-5">
+                            <div className="relative group">
+                                <div className="absolute -inset-1 bg-emerald-500/20 rounded-2xl blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="relative w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-xl">
+                                    <BrainCircuit className="w-7 h-7 text-emerald-500" />
                                 </div>
-                                <div className="absolute -bottom-1 -right-1 flex h-3 w-3">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-[#020617]"></span>
+                                <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#020817] p-0.5">
+                                    <div className="w-full h-full rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
                                 </div>
                             </div>
-                            <div className="flex flex-col">
-                                <span className="text-base font-black uppercase italic tracking-tighter text-white">Neural Assistant</span>
-                                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
-                                    <span className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse"/>
+                            <div className="flex flex-col gap-0.5">
+                                <span className="text-lg font-black uppercase tracking-tighter text-white/90">Neural Assistant</span>
+                                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                                     Active Now
                                 </span>
                             </div>
                         </div>
                         <button 
                             onClick={() => setIsOpen(false)} 
-                            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all hover:rotate-90"
+                            className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all shadow-inner"
                         >
-                            <X className="w-4 h-4" />
+                            <X className="w-5 h-5" />
                         </button>
                     </div>
 
+                    <div className="h-px w-full bg-gradient-to-r from-transparent via-white/5 to-transparent shadow-[0_1px_2px_rgba(0,0,0,0.5)]" />
+
                     {/* Messages Area */}
-                    <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent relative z-10">
+                    <div className="flex-1 overflow-y-auto px-8 py-6 space-y-8 scrollbar-none relative z-10">
                         {messages.length === 0 && (
-                            <div className="flex flex-col items-center justify-center h-full text-center space-y-6 opacity-60">
-                                <div className="w-20 h-20 rounded-[2rem] bg-white/5 border border-white/10 flex items-center justify-center rotate-3 relative overflow-hidden group/icon">
-                                    <div className="absolute inset-0 bg-gradient-to-tr from-accent/20 to-transparent opacity-0 group-hover/icon:opacity-100 transition-opacity duration-500" />
-                                    <BrainCircuit className="w-10 h-10 text-white/50 group-hover/icon:text-accent transition-colors duration-500" />
+                            <div className="flex flex-col items-center justify-center h-full text-center space-y-8 py-10">
+                                <div className="relative">
+                                    <div className="absolute -inset-8 bg-white/5 rounded-full blur-3xl" />
+                                    <div className="relative w-28 h-28 rounded-[2.5rem] bg-white/[0.03] border border-white/5 flex items-center justify-center shadow-2xl">
+                                        <BrainCircuit className="w-12 h-12 text-white/20" />
+                                    </div>
                                 </div>
-                                <div className="space-y-2 max-w-[240px]">
-                                    <h3 className="text-white font-bold tracking-tight">How can I help you?</h3>
-                                    <p className="text-xs text-white/40 font-medium leading-relaxed">
+                                <div className="space-y-3">
+                                    <h3 className="text-2xl font-black tracking-tight text-white/80">How can I help you?</h3>
+                                    <p className="text-xs text-white/30 font-bold uppercase tracking-widest max-w-[280px] leading-relaxed mx-auto">
                                         I can help you navigate the platform, explain features, or analyze market trends.
                                     </p>
                                 </div>
@@ -139,35 +144,27 @@ export function GlobalAssistantBot() {
                         )}
                         
                         {messages.map((msg) => (
-                            <div key={msg.id} className={cn("flex gap-3 max-w-[90%] animate-in fade-in slide-in-from-bottom-2 duration-300", msg.role === "user" ? "ml-auto flex-row-reverse" : "")}>
+                            <div key={msg.id} className={cn("flex flex-col gap-2 max-w-[85%] animate-in fade-in slide-in-from-bottom-4 duration-500", msg.role === "user" ? "ml-auto" : "")}>
                                 <div className={cn(
-                                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0 border shadow-lg",
-                                    msg.role === "user" ? "bg-white text-black border-white" : "bg-black/40 border-white/10"
-                                )}>
-                                    {msg.role === "user" ? <User className="w-4 h-4" /> : <Sparkles className="w-4 h-4 text-accent" />}
-                                </div>
-                                <div className={cn(
-                                    "p-4 rounded-3xl text-base font-medium leading-relaxed shadow-sm relative overflow-hidden",
+                                    "px-6 py-4 rounded-[1.8rem] text-[15px] font-medium leading-relaxed shadow-xl",
                                     msg.role === "user" 
-                                        ? "bg-accent text-black font-semibold rounded-tr-sm" 
-                                        : "bg-white/5 border border-white/10 text-gray-100 rounded-tl-sm backdrop-blur-md"
+                                        ? "bg-accent text-accent-foreground font-black rounded-tr-sm" 
+                                        : "bg-white/5 border border-white/10 text-white/80 rounded-tl-sm backdrop-blur-xl"
                                 )}>
-                                    {/* Subtle sheen for user messages */}
-                                    {msg.role === "user" && <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent pointer-events-none" />}
-                                    <div className="relative z-10">{msg.content}</div>
+                                    {msg.content}
                                 </div>
+                                <span className={cn("text-[9px] font-black uppercase tracking-widest text-white/20 px-2", msg.role === "user" ? "text-right" : "text-left")}>
+                                    {msg.role === "assistant" ? "System Protocol" : "User Request"}
+                                </span>
                             </div>
                         ))}
                         
                         {isLoading && (
-                            <div className="flex gap-3 max-w-[90%] animate-in fade-in slide-in-from-bottom-2">
-                                <div className="w-8 h-8 rounded-full bg-black/40 border border-white/10 flex items-center justify-center shrink-0">
-                                    <Loader2 className="w-4 h-4 text-accent animate-spin" />
-                                </div>
-                                <div className="p-4 rounded-3xl bg-white/5 border border-white/10 rounded-tl-sm flex items-center gap-2">
-                                    <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce [animation-delay:-0.3s]" />
-                                    <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce [animation-delay:-0.15s]" />
-                                    <span className="w-1.5 h-1.5 bg-accent rounded-full animate-bounce" />
+                            <div className="flex gap-2 max-w-[80%] animate-in fade-in transition-all">
+                                <div className="px-5 py-4 rounded-2xl bg-white/5 border border-white/5 rounded-tl-sm flex items-center gap-1.5">
+                                    <span className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                    <span className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                    <span className="w-1 h-1 bg-emerald-500 rounded-full animate-bounce" />
                                 </div>
                             </div>
                         )}
@@ -175,27 +172,23 @@ export function GlobalAssistantBot() {
                     </div>
 
                     {/* Input Area */}
-                    <div className="p-4 bg-gradient-to-t from-black/80 to-transparent pointer-events-none absolute bottom-0 left-0 right-0 h-32 z-0" />
-                    
-                    <div className="p-4 relative z-20">
-                        <div className="group relative rounded-[2rem] p-1 bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-xl border border-white/10 shadow-2xl transition-all focus-within:border-accent/30 focus-within:shadow-accent/10 focus-within:bg-black/80">
-                            <div className="relative flex items-center">
-                                <input
-                                    type="text"
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    onKeyDown={handleKeyDown}
-                                    placeholder="Type your message..."
-                                    className="w-full bg-transparent border-none rounded-full px-5 py-4 text-lg text-white focus:ring-0 placeholder:text-white/20 font-medium"
-                                />
-                                <button
-                                    onClick={handleSend}
-                                    disabled={!input.trim() || isLoading}
-                                    className="absolute right-2 p-3 bg-accent text-black rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 active:scale-95 transition-all shadow-lg shadow-accent/20 hover:shadow-accent/40"
-                                >
-                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                </button>
-                            </div>
+                    <div className="p-8 pb-10 relative z-10">
+                        <div className="relative group bg-white/[0.03] border border-white/5 rounded-[2.5rem] p-1.5 transition-all focus-within:bg-white/[0.05] focus-within:border-white/10 focus-within:shadow-[0_0_40px_-10px_rgba(0,0,0,1)]">
+                            <input
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                placeholder="Type your message..."
+                                className="w-full bg-transparent border-none px-6 py-5 text-base text-white/90 focus:ring-0 placeholder:text-white/20 font-black uppercase tracking-tighter"
+                            />
+                            <button
+                                onClick={handleSend}
+                                disabled={!input.trim() || isLoading}
+                                className="absolute right-2.5 top-2.5 w-11 h-11 bg-emerald-500 text-[#020817] rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-20 shadow-lg shadow-emerald-500/20"
+                            >
+                                {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 fill-[#020817]" />}
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -14,14 +14,14 @@ export default function Home() {
   const [isSubOpen, setIsSubOpen] = React.useState(false);
 
   return (
-    <main className="min-h-screen bg-background relative overflow-hidden pb-24 sm:pb-0">
+    <main role="main" aria-label="Home page" className="min-h-screen bg-background relative overflow-hidden pb-24 sm:pb-0">
       <Header />
       <TradingChart />
 
       <div className="relative z-10">
         <Hero onOpenSubscription={() => setIsSubOpen(true)} />
         <Features />
-        <Pricing />
+        <Pricing onOpenSubscription={() => setIsSubOpen(true)} />
         <Footer />
       </div>
 

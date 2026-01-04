@@ -2,14 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { LanguageSelector } from "@/components/ui/language-selector";
 import { useLanguage } from "@/lib/language-context";
 import { API_BASE_URL } from "@/lib/api";
 import { BrainCircuit } from "lucide-react";
+import { toast } from "sonner";
+import { isAuthenticated, getCurrentUser } from "@/lib/auth";
 
 export function Header() {
   const [user, setUser] = useState<{ name: string } | null>(null);
   const { t } = useLanguage();
+  const router = useRouter();
 
   useEffect(() => {
     const stored = localStorage.getItem("user");
@@ -31,7 +35,7 @@ export function Header() {
         <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center p-1.5 shadow-lg shadow-accent/20 transition-transform hover:scale-105 active:scale-95 text-background">
           <BrainCircuit className="w-full h-full" />
         </div>
-        <span className="font-black text-xl sm:text-2xl tracking-tighter italic uppercase text-foreground">Neural Flow</span>
+        <span className="font-black text-xl sm:text-2xl tracking-tighter uppercase text-foreground">Neural Flow</span>
       </div>
 
       {/* Right side */}
@@ -81,12 +85,24 @@ export function Header() {
             >
               {t.header.signin}
             </Link>
-            <Link
-              href="/signup"
+            <button
+              onClick={() => {
+                if (isAuthenticated()) {
+                  const user = getCurrentUser();
+                  const status = user?.subscription_status?.toLowerCase();
+                  if (status === 'pro' || status === 'elite') {
+                    toast.success('You already have a subscription');
+                    return;
+                  }
+                  router.push('/pricing');
+                } else {
+                  router.push('/signup');
+                }
+              }}
               className="px-5 py-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all"
             >
               {t.header.get_started}
-            </Link>
+            </button>
           </div>
         )}
       </div>
