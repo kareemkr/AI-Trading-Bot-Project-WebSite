@@ -53,7 +53,7 @@ class RealTradingBot:
         self.running = False
         self.client = None
         self.public_client = Client("", "") # For public data
-        self.is_virtual = False
+        self.is_virtual = False  # FORCE LIVE MODE
         self.model = None
         self.feature_cols = [
             "open", "high", "low", "close", "volume",
@@ -84,14 +84,12 @@ class RealTradingBot:
         secret = api_secret or os.getenv("BINANCE_API_SECRET")
 
         if not key or not secret:
-            self.log("⚠️ SHADOW MODE ENABLED ⚠️ | Binance API keys missing. NO REAL TRADES WILL BE EXECUTED.", level="CRITICAL")
+            self.log("❌ CRITICAL ERROR: Missing Binance API credentials!", level="CRITICAL")
             print("\n" + "="*60)
-            print("⚠️ SHADOW MODE ACTIVE – NO REAL FUNDS AT RISK")
-            print("⚠️ Missing Binance API credentials")
+            print("❌ SHADOW MODE DISABLED BY SYSTEM")
+            print("❌ Missing Binance API credentials - TERMINATING")
             print("="*60 + "\n")
-            self.is_virtual = True
-            self.client = self.public_client
-            return
+            raise RuntimeError("❌ BINANCE API KEYS MISSING — CANNOT START IN LIVE MODE")
             
         try:
             self.client = Client(key, secret)
@@ -99,9 +97,8 @@ class RealTradingBot:
             self.log("✅ Securely connected to Binance Protocol.")
             self.log("🚨 LIVE TRADING ENABLED – REAL ORDERS WILL BE SENT")
         except Exception as e:
-            self.log(f"❌ Connection failed: {e}. Falling back to SHADOW MODE.", level="ERROR")
-            self.is_virtual = True
-            self.client = self.public_client
+            self.log(f"❌ Connection failed: {e}.", level="ERROR")
+            raise RuntimeError(f"❌ FAILED TO CONNECT TO BINANCE: {e}")
 
     def fetch_ohlcv(self, symbol, interval, limit):
         try:
@@ -124,13 +121,7 @@ class RealTradingBot:
     def get_account_info(self):
         """Fetches real balances and account health from Binance."""
         if self.is_virtual:
-            return {
-                "equity": 50000.0,
-                "unrealized_pnl": 0.0,
-                "total_wallet_balance": 50000.0,
-                "available_balance": 50000.0,
-                "mode": "SHADOW"
-            }
+            raise RuntimeError("❌ SHADOW MODE IS ACTIVE — ACCOUNT INFO BLOCKED")
         
         if not self.client:
             return None
@@ -360,6 +351,7 @@ class RealTradingBot:
         price = signal_data["price"]
         
         self.log(f"🎯 Strategy Triggered for {symbol} ({side})")
+        self.log("💰💰💰 LIVE TRADE EXECUTION PATH REACHED 💰💰💰", level="CRITICAL")
         
         # Risk Management (Fixed unit for simplicity as per removal of wallet logic)
         qty = 0.01 # Institutional default unit
@@ -367,16 +359,17 @@ class RealTradingBot:
         self.log(f"⚡ EVALUATING {side} PROTOCOL: {qty} {symbol} @ {price}")
         
         if self.is_virtual:
-            self.log(f"🛡️ [SHADOW] Forwarding signal to virtual ledger.")
-            try:
-                from app.main import sim
-                await sim.record(symbol, side, signal_data.get("score", 1.0), news_ai.sentiment_score, price=price, qty=qty)
-            except: pass
-            return
+            self.log("❌ CRITICAL ERROR: Bot is in Virtual Mode!", level="CRITICAL")
+            raise RuntimeError("❌ SHADOW MODE IS ACTIVE — LIVE TRADING BLOCKED")
+
+        if not self.client:
+            self.log("❌ CRITICAL ERROR: Binance Client Not Initialized!", level="CRITICAL")
+            raise RuntimeError("❌ BINANCE CLIENT NOT INITIALIZED — CANNOT TRADE")
 
         try:
             # Wrap synchronous Binance call in executor
             loop = asyncio.get_running_loop()
+            self.log("🚨 SENDING REAL ORDER TO BINANCE 🚨", level="CRITICAL")
             await loop.run_in_executor(None, self.client.futures_create_order, symbol, side, "MARKET", qty)
             self.log(f"✨ SUCCESS: {side} order filled for {symbol}")
             
