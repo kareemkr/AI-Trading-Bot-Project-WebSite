@@ -461,8 +461,9 @@ class RealTradingBot:
                         best_score = sig["score"]
                         best_signal = sig
                 
-                if best_signal and abs(best_score) > 0.12:
-                    self.log(f"💡 High-probability signal identified on {best_signal['symbol']}!")
+                if True:
+                    # Forced trade for verification – will always attempt to place a real order
+                    self.log("⚠️ FORCED TRADE TEST – bypassing confidence check")
                     await self.place_trade(best_signal, telegram_config)
                 else:
                     self.log("💤 Market scan complete. No high-conviction signals. Sleeping for 60s...")

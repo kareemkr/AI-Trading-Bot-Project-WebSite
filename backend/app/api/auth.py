@@ -177,6 +177,14 @@ async def update_profile(
         user.binance_api_key = binance_api_key
     if binance_api_secret is not None:
         user.binance_api_secret = binance_api_secret
+        # Validate Binance credentials if both key and secret are provided
+        if user.binance_api_key and user.binance_api_secret:
+            try:
+                from binance.client import Client
+                test_client = Client(user.binance_api_key, user.binance_api_secret)
+                test_client.futures_exchange_info()
+            except Exception as e:
+                raise HTTPException(status_code=400, detail="Invalid Binance API credentials")
     if auto_trade_confirmation is not None:
         user.auto_trade_confirmation = auto_trade_confirmation
     if risk_management_alerts is not None:
