@@ -15,8 +15,8 @@ async def main():
     print("🚀 STARTING AI TRADING BOT IN TERMINAL MODE")
     print("═"*60 + "\n")
 
-    api_key = os.getenv("BINANCE_API_KEY")
-    api_secret = os.getenv("BINANCE_API_SECRET")
+    api_key = (os.getenv("BINANCE_API_KEY") or "").strip()
+    api_secret = (os.getenv("BINANCE_API_SECRET") or "").strip()
 
     if not api_key or not api_secret:
         print("❌ ERROR: BINANCE_API_KEY or BINANCE_API_SECRET not found in .env")

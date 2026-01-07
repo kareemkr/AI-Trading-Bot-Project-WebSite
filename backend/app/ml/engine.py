@@ -80,8 +80,8 @@ class RealTradingBot:
 
     def connect(self, api_key=None, api_secret=None):
         # Use provided keys, or fallback to env
-        key = api_key or os.getenv("BINANCE_API_KEY")
-        secret = api_secret or os.getenv("BINANCE_API_SECRET")
+        key = (api_key or os.getenv("BINANCE_API_KEY") or "").strip()
+        secret = (api_secret or os.getenv("BINANCE_API_SECRET") or "").strip()
 
         if not key or not secret:
             self.log("❌ CRITICAL ERROR: Missing Binance API credentials!", level="CRITICAL")
@@ -94,10 +94,19 @@ class RealTradingBot:
         try:
             self.client = Client(key, secret)
             self.is_virtual = False
+            
+            print("\n" + "╔" + "═"*58 + "╗")
+            print(f"║ {'SYSTEM CONNECTED TO BINANCE PROTOCOL':^56} ║")
+            print("╠" + "═"*58 + "╣")
+            print(f"║ {'API KEY: ' + key[:6] + '...' + key[-4:]:^56} ║")
+            print(f"║ {'TRADING MODE: REAL MONEY':^56} ║")
+            print("╚" + "═"*58 + "╝\n")
+            
             self.log("✅ Securely connected to Binance Protocol.")
             self.log("🚨 LIVE TRADING ENABLED – REAL ORDERS WILL BE SENT")
         except Exception as e:
             self.log(f"❌ Connection failed: {e}.", level="ERROR")
+            print(f"\n❌ FAILED TO CONNECT TO BINANCE: {e}\n")
             raise RuntimeError(f"❌ FAILED TO CONNECT TO BINANCE: {e}")
 
     def fetch_ohlcv(self, symbol, interval, limit):
@@ -369,8 +378,15 @@ class RealTradingBot:
         try:
             # Wrap synchronous Binance call in executor
             loop = asyncio.get_running_loop()
-            self.log("🚨 SENDING REAL ORDER TO BINANCE 🚨", level="CRITICAL")
+            
+            print("\n" + "🔥"*20)
+            print(f"🚀 EXECUTING {side} ORDER: {qty} {symbol}")
+            print("🔥"*20 + "\n")
+            
+            self.log(f"🚨 SENDING REAL {side} ORDER TO BINANCE 🚨", level="CRITICAL")
             await loop.run_in_executor(None, self.client.futures_create_order, symbol, side, "MARKET", qty)
+            
+            print(f"✅ SUCCESS: {side} order filled for {symbol} at ${price}")
             self.log(f"✨ SUCCESS: {side} order filled for {symbol}")
             
             try:
@@ -383,7 +399,25 @@ class RealTradingBot:
                     await telegram_ai.send_signal_alert(symbol, side, news_ai.sentiment_score, 0.95)
                 except Exception as te:
                     self.log(f"Telegram notification failed (non-fatal): {te}", level="WARNING")
+                    
+        except BinanceAPIException as e:
+            error_msg = str(e)
+            if e.code == -2010:
+                friendly_error = "❌ INSUFFICIENT FUNDS: Your Binance Futures account doesn't have enough USDT."
+            elif e.code == -1021:
+                friendly_error = "❌ TIMESTAMP ERROR: Check your VPS clock/time settings."
+            elif e.code == -2015:
+                friendly_error = "❌ INVALID API KEY permissions: Check if Futures is enabled for this key."
+            else:
+                friendly_error = f"❌ BINANCE API ERROR ({e.code}): {e.message}"
+            
+            print("\n" + "!"*60)
+            print(f"❌ {friendly_error}")
+            print("!"*60 + "\n")
+            self.log(friendly_error, level="ERROR")
+            
         except Exception as e:
+            print(f"\n❌ UNKNOWN EXECUTION ERROR: {str(e)}\n")
             self.log(f"❌ EXECUTION FAILED: {str(e)}")
             if telegram_config:
                 try:
