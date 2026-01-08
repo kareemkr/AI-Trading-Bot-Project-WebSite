@@ -383,7 +383,7 @@ class RealTradingBot:
             print(f"🚀 EXECUTING {side} ORDER: {qty} {symbol}")
             print("🔥"*20 + "\n")
             
-            # Adjust quantity to respect Binance precision for the symbol
+            # Adjust quantity to respect Binance filters (Precision and Notional)
             try:
                 self.log(f"🔍 Fetching exchange rules for {symbol}...")
                 ex_info = await loop.run_in_executor(None, self.client.futures_exchange_info)
@@ -397,19 +397,27 @@ class RealTradingBot:
                         from decimal import Decimal, ROUND_DOWN
                         step = Decimal(lot_size['stepSize'])
                         min_qty = Decimal(lot_size['minQty'])
-                        qty_decimal = Decimal(str(qty))
                         
-                        # Round down to nearest step
+                        # 1. Minimum Notional Check (Binance Futures requires ~5 USDT)
+                        # We calculate min_req_qty to be at least 5.1 USDT (adding buffer)
+                        min_notional = 5.1
+                        min_req_qty = min_notional / price
+                        
+                        # 2. Use the greater of our intended qty or the minimum required for notional
+                        qty_to_use = max(qty, min_req_qty)
+                        
+                        # 3. Apply precision (Round down to nearest step)
+                        qty_decimal = Decimal(str(qty_to_use))
                         qty_adjusted = (qty_decimal // step) * step
                         
-                        # Floor at min_qty
+                        # 4. Floor at min_qty
                         if qty_adjusted < min_qty:
                             qty_adjusted = min_qty
                             
                         qty = float(qty_adjusted)
-                        self.log(f"📏 Precision Adjusted: {qty} {symbol} (Min: {min_qty}, Step: {step})")
+                        self.log(f"📏 Rules: {qty} {symbol} (MinReq: {min_req_qty:.4f}, Step: {step})")
             except Exception as e:
-                self.log(f"⚠️ Precision adjustment failed: {e}", level="WARNING")
+                self.log(f"⚠️ Rule enforcement failed: {e}", level="WARNING")
 
             self.log(f"📡 Sending {side} order to Binance...")
             await loop.run_in_executor(
