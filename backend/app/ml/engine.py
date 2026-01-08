@@ -383,7 +383,7 @@ class RealTradingBot:
             print(f"🚀 EXECUTING {side} ORDER: {qty} {symbol}")
             print("🔥"*20 + "\n")
             
-            # Adjust quantity to respect Binance filters (Precision and Notional)
+            # Adjust quantity based on Binance filters (Dynamic Rule Enforcement)
             try:
                 self.log(f"🔍 Fetching exchange rules for {symbol}...")
                 ex_info = await loop.run_in_executor(None, self.client.futures_exchange_info)
@@ -392,16 +392,20 @@ class RealTradingBot:
                 if not symbol_info:
                     self.log(f"⚠️ Could not find futures info for {symbol}, using raw quantity.", level="WARNING")
                 else:
-                    lot_size = next((f for f in symbol_info.get('filters', []) if f.get('filterType') == 'LOT_SIZE'), None)
-                    if lot_size:
+                    filters = {f['filterType']: f for f in symbol_info.get('filters', [])}
+                    
+                    if 'LOT_SIZE' in filters:
                         from decimal import Decimal, ROUND_DOWN
-                        step = Decimal(lot_size['stepSize'])
-                        min_qty = Decimal(lot_size['minQty'])
+                        lot = filters['LOT_SIZE']
+                        step = Decimal(lot['stepSize'])
+                        min_qty = Decimal(lot['minQty'])
                         
-                        # 1. Minimum Notional Check (Binance Futures requires ~5 USDT)
-                        # We calculate min_req_qty to be at least 5.1 USDT (adding buffer)
-                        min_notional = 5.1
-                        min_req_qty = min_notional / price
+                        # 1. Dynamic Minimum Notional Check
+                        # Most symbols are 5 USDT, but we'll check MIN_NOTIONAL or NOTIONAL filters
+                        notional_filter = filters.get('MIN_NOTIONAL') or filters.get('NOTIONAL')
+                        # Default to 5.1 if not found as a safe baseline for Binance Futures
+                        target_notional = float(notional_filter.get('notional', 5.0)) if notional_filter else 5.0
+                        min_req_qty = (target_notional + 0.1) / price # Add 0.1 buffer
                         
                         # 2. Use the greater of our intended qty or the minimum required for notional
                         qty_to_use = max(qty, min_req_qty)
@@ -410,12 +414,12 @@ class RealTradingBot:
                         qty_decimal = Decimal(str(qty_to_use))
                         qty_adjusted = (qty_decimal // step) * step
                         
-                        # 4. Floor at min_qty
+                        # 4. Final floor at min_qty
                         if qty_adjusted < min_qty:
                             qty_adjusted = min_qty
                             
                         qty = float(qty_adjusted)
-                        self.log(f"📏 Rules: {qty} {symbol} (MinReq: {min_req_qty:.4f}, Step: {step})")
+                        self.log(f"📏 Rules: {qty} {symbol} (MinNotional: {target_notional}, Step: {step})")
             except Exception as e:
                 self.log(f"⚠️ Rule enforcement failed: {e}", level="WARNING")
 
