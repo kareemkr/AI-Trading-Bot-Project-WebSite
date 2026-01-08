@@ -6,13 +6,19 @@ from passlib.context import CryptContext
 # Add the current directory to sys.path
 sys.path.append(os.getcwd())
 
-from app.database.session import AsyncSessionLocal
+from app.database.session import AsyncSessionLocal, Base, engine
 from app.models.user import User
 from app.models.wallet import Wallet
+from app.models.bot import BotTradeRecord
+from sqlalchemy import select
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 
 async def init_db():
+    print("Creating tables if they don't exist...")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
     print("Initializing Database with default user...")
     async with AsyncSessionLocal() as db:
         # Check if user exists

@@ -383,8 +383,15 @@ class RealTradingBot:
             print(f"🚀 EXECUTING {side} ORDER: {qty} {symbol}")
             print("🔥"*20 + "\n")
             
-            self.log(f"🚨 SENDING REAL {side} ORDER TO BINANCE 🚨", level="CRITICAL")
-            await loop.run_in_executor(None, self.client.futures_create_order, symbol, side, "MARKET", qty)
+            await loop.run_in_executor(
+    None,
+    lambda: self.client.futures_create_order(
+        symbol=symbol,
+        side=side,
+        type="MARKET",
+        quantity=qty,
+    ),
+)
             
             print(f"✅ SUCCESS: {side} order filled for {symbol} at ${price}")
             self.log(f"✨ SUCCESS: {side} order filled for {symbol}")

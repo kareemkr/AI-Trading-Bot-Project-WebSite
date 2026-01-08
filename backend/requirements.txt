@@ -19,3 +19,5 @@ sqlalchemy[asyncio]
 asyncpg
 python-multipart
 alembic
+email-validator
+passlib
