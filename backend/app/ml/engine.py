@@ -383,15 +383,31 @@ class RealTradingBot:
             print(f"🚀 EXECUTING {side} ORDER: {qty} {symbol}")
             print("🔥"*20 + "\n")
             
-            await loop.run_in_executor(
-    None,
-    lambda: self.client.futures_create_order(
-        symbol=symbol,
-        side=side,
-        type="MARKET",
-        quantity=qty,
-    ),
-)
+                            # Adjust quantity to respect Binance precision for the symbol
+                try:
+                    info = self.client.get_symbol_info(symbol)
+                    step_size = None
+                    for f in info.get('filters', []):
+                        if f.get('filterType') == 'LOT_SIZE':
+                            step_size = f.get('stepSize')
+                            break
+                    if step_size:
+                        from decimal import Decimal, ROUND_DOWN
+                        step = Decimal(step_size)
+                        qty_decimal = Decimal(str(qty))
+                        qty = float((qty_decimal // step) * step)
+                except Exception as e:
+                    self.log(f"⚠️ Failed to adjust qty precision for {symbol}: {e}", level="WARNING")
+
+                await loop.run_in_executor(
+                    None,
+                    lambda: self.client.futures_create_order(
+                        symbol=symbol,
+                        side=side,
+                        type="MARKET",
+                        quantity=qty,
+                    ),
+                )
             
             print(f"✅ SUCCESS: {side} order filled for {symbol} at ${price}")
             self.log(f"✨ SUCCESS: {side} order filled for {symbol}")
