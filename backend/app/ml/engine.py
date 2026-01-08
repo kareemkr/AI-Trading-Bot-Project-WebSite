@@ -385,20 +385,29 @@ class RealTradingBot:
             
             # Adjust quantity to respect Binance precision for the symbol
             try:
-                info = self.client.get_symbol_info(symbol)
-                step_size = None
-                for f in info.get('filters', []):
-                    if f.get('filterType') == 'LOT_SIZE':
-                        step_size = f.get('stepSize')
-                        break
-                if step_size:
-                    from decimal import Decimal, ROUND_DOWN
-                    step = Decimal(step_size)
-                    qty_decimal = Decimal(str(qty))
-                    qty = float((qty_decimal // step) * step)
+                self.log(f"🔍 Fetching exchange rules for {symbol}...")
+                # Use futures_exchange_info for Futures precision
+                ex_info = await loop.run_in_executor(None, self.client.futures_exchange_info)
+                symbol_info = next((s for s in ex_info['symbols'] if s['symbol'] == symbol), None)
+                
+                if not symbol_info:
+                    self.log(f"⚠️ Could not find futures info for {symbol}, using raw quantity.", level="WARNING")
+                else:
+                    step_size = None
+                    for f in symbol_info.get('filters', []):
+                        if f.get('filterType') == 'LOT_SIZE':
+                            step_size = f.get('stepSize')
+                            break
+                    if step_size:
+                        from decimal import Decimal, ROUND_DOWN
+                        step = Decimal(step_size)
+                        qty_decimal = Decimal(str(qty))
+                        qty = float((qty_decimal // step) * step)
+                        self.log(f"📏 Precision Adjusted: {qty} {symbol} (Step: {step_size})")
             except Exception as e:
-                self.log(f"⚠️ Failed to adjust qty precision for {symbol}: {e}", level="WARNING")
+                self.log(f"⚠️ Precision adjustment failed: {e}", level="WARNING")
 
+            self.log(f"📡 Sending {side} order to Binance...")
             await loop.run_in_executor(
                 None,
                 lambda: self.client.futures_create_order(
@@ -408,6 +417,8 @@ class RealTradingBot:
                     quantity=qty,
                 ),
             )
+            self.log(f"📥 Binance response received.")
+
             
             print(f"✅ SUCCESS: {side} order filled for {symbol} at ${price}")
             self.log(f"✨ SUCCESS: {side} order filled for {symbol}")
