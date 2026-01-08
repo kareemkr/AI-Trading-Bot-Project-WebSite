@@ -395,31 +395,32 @@ class RealTradingBot:
                     filters = {f['filterType']: f for f in symbol_info.get('filters', [])}
                     
                     if 'LOT_SIZE' in filters:
-                        from decimal import Decimal, ROUND_DOWN
+                        from decimal import Decimal, ROUND_UP
                         lot = filters['LOT_SIZE']
                         step = Decimal(lot['stepSize'])
                         min_qty = Decimal(lot['minQty'])
                         
                         # 1. Dynamic Minimum Notional Check
-                        # Most symbols are 5 USDT, but we'll check MIN_NOTIONAL or NOTIONAL filters
                         notional_filter = filters.get('MIN_NOTIONAL') or filters.get('NOTIONAL')
-                        # Default to 5.1 if not found as a safe baseline for Binance Futures
                         target_notional = float(notional_filter.get('notional', 5.0)) if notional_filter else 5.0
-                        min_req_qty = (target_notional + 0.1) / price # Add 0.1 buffer
+                        
+                        # Calculate required qty to hit (Notional + 1 USDT) for safety
+                        min_req_qty = (target_notional + 1.0) / price 
                         
                         # 2. Use the greater of our intended qty or the minimum required for notional
                         qty_to_use = max(qty, min_req_qty)
                         
-                        # 3. Apply precision (Round down to nearest step)
+                        # 3. Apply precision (Round UP to nearest step to ensure notional compliance)
                         qty_decimal = Decimal(str(qty_to_use))
-                        qty_adjusted = (qty_decimal // step) * step
+                        # Formula to round up to nearest decimal step: ceil(qty / step) * step
+                        qty_adjusted = (qty_decimal / step).quantize(Decimal('1'), rounding=ROUND_UP) * step
                         
-                        # 4. Final floor at min_qty
+                        # 4. Final floor at min_qty (if somehow still too low)
                         if qty_adjusted < min_qty:
                             qty_adjusted = min_qty
                             
                         qty = float(qty_adjusted)
-                        self.log(f"📏 Rules: {qty} {symbol} (MinNotional: {target_notional}, Step: {step})")
+                        self.log(f"📏 Rules: {qty} {symbol} (Target: ${target_notional}, Price: ${price:.4f}, Step: {step})")
             except Exception as e:
                 self.log(f"⚠️ Rule enforcement failed: {e}", level="WARNING")
 
