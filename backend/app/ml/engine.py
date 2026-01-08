@@ -386,24 +386,28 @@ class RealTradingBot:
             # Adjust quantity to respect Binance precision for the symbol
             try:
                 self.log(f"🔍 Fetching exchange rules for {symbol}...")
-                # Use futures_exchange_info for Futures precision
                 ex_info = await loop.run_in_executor(None, self.client.futures_exchange_info)
                 symbol_info = next((s for s in ex_info['symbols'] if s['symbol'] == symbol), None)
                 
                 if not symbol_info:
                     self.log(f"⚠️ Could not find futures info for {symbol}, using raw quantity.", level="WARNING")
                 else:
-                    step_size = None
-                    for f in symbol_info.get('filters', []):
-                        if f.get('filterType') == 'LOT_SIZE':
-                            step_size = f.get('stepSize')
-                            break
-                    if step_size:
+                    lot_size = next((f for f in symbol_info.get('filters', []) if f.get('filterType') == 'LOT_SIZE'), None)
+                    if lot_size:
                         from decimal import Decimal, ROUND_DOWN
-                        step = Decimal(step_size)
+                        step = Decimal(lot_size['stepSize'])
+                        min_qty = Decimal(lot_size['minQty'])
                         qty_decimal = Decimal(str(qty))
-                        qty = float((qty_decimal // step) * step)
-                        self.log(f"📏 Precision Adjusted: {qty} {symbol} (Step: {step_size})")
+                        
+                        # Round down to nearest step
+                        qty_adjusted = (qty_decimal // step) * step
+                        
+                        # Floor at min_qty
+                        if qty_adjusted < min_qty:
+                            qty_adjusted = min_qty
+                            
+                        qty = float(qty_adjusted)
+                        self.log(f"📏 Precision Adjusted: {qty} {symbol} (Min: {min_qty}, Step: {step})")
             except Exception as e:
                 self.log(f"⚠️ Precision adjustment failed: {e}", level="WARNING")
 
