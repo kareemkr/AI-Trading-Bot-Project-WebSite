@@ -104,6 +104,12 @@ class RealTradingBot:
             
             self.log("✅ Securely connected to Binance Protocol.")
             self.log("🚨 LIVE TRADING ENABLED – REAL ORDERS WILL BE SENT")
+            
+            # Automatically try to set a baseline leverage
+            try:
+                # We'll set it per symbol during trade, but let's log connection success here
+                pass
+            except: pass
         except Exception as e:
             self.log(f"❌ Connection failed: {e}.", level="ERROR")
             print(f"\n❌ FAILED TO CONNECT TO BINANCE: {e}\n")
@@ -392,6 +398,11 @@ class RealTradingBot:
                 if not symbol_info:
                     self.log(f"⚠️ Could not find futures info for {symbol}, using raw quantity.", level="WARNING")
                 else:
+                    # Automatically set leverage to 20x to maximize margin efficiency
+                    try:
+                        await loop.run_in_executor(None, lambda: self.client.futures_change_leverage(symbol=symbol, leverage=20))
+                    except: pass
+
                     filters = {f['filterType']: f for f in symbol_info.get('filters', [])}
                     
                     if 'LOT_SIZE' in filters:
@@ -420,7 +431,14 @@ class RealTradingBot:
                             qty_adjusted = min_qty
                             
                         qty = float(qty_adjusted)
-                        self.log(f"📏 Rules: {qty} {symbol} (Target: ${target_notional}, Price: ${price:.4f}, Step: {step})")
+                        
+                        # Check balance before sending
+                        acc = await loop.run_in_executor(None, self.get_account_info)
+                        balance = acc['available_balance'] if acc else 0
+                        cost = (qty * price) / 20 # Estimate cost at 20x leverage
+                        
+                        self.log(f"💰 Balance: ${balance:.2f} | Est. Cost: ${cost:.2f}")
+                        self.log(f"📏 Rules: {qty} {symbol} (Target: ${target_notional}, Step: {step})")
             except Exception as e:
                 self.log(f"⚠️ Rule enforcement failed: {e}", level="WARNING")
 
