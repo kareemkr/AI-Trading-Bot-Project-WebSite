@@ -4,9 +4,9 @@ import { GlobalAssistantBot } from "@/components/global-assistant-bot";
 import "./globals.css";
 
 export const metadata = {
-  title: "NEURAL FLOW - Institutional AI Trading",
+  title: "Breakout OS - AI Backend Roadmap",
   description:
-    "The world's most advanced AI-driven trading ecosystem. Execute data-backed strategies with institutional precision and secure automation.",
+    "A polished AI and backend roadmap for building public proof, strong GitHub projects, and remote-ready software skills.",
 };
 
 export default function RootLayout({

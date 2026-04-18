@@ -1,92 +1,100 @@
 "use client";
 
-import * as React from "react";
-import { Rocket, Globe, Shield } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, BadgeDollarSign, BrainCircuit, Github, Globe2, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useLanguage } from "@/lib/language-context";
 import { isAuthenticated } from "@/lib/auth";
 
 interface HeroProps {
   onOpenSubscription?: () => void;
 }
 
-export function Hero({ onOpenSubscription }: HeroProps) {
+const proofStats = [
+  { value: "50K+ EGP", label: "Local target" },
+  { value: "$3K-$5K", label: "Remote ceiling" },
+  { value: "3 Projects", label: "Portfolio proof" },
+];
+
+export function Hero({ onOpenSubscription: _onOpenSubscription }: HeroProps) {
   const router = useRouter();
-  const { t } = useLanguage();
+
+  const openBuilder = () => {
+    router.push(isAuthenticated() ? "/dashboard" : "/signup");
+  };
 
   return (
-    <section className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-20 text-center overflow-hidden">
-      {/* Passionate Futuristic Background Elements - Hidden on mobile for clarity */}
-      <div className="hidden sm:block absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] -z-10 animate-pulse" />
-      <div className="hidden sm:block absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px] -z-10" />
-      
-      {/* Hero Badge Removed */}
+    <section className="relative isolate min-h-[92svh] overflow-hidden px-4 pt-28 pb-12 sm:px-6 lg:px-8">
+      <Image
+        src="/breakout-hero.png"
+        alt="Software engineer building cloud AI systems from Cairo"
+        fill
+        priority
+        sizes="100vw"
+        className="absolute inset-0 -z-20 object-cover object-center"
+      />
+      <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(5,10,14,0.96)_0%,rgba(5,10,14,0.82)_42%,rgba(5,10,14,0.34)_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 -z-10 h-40 bg-gradient-to-t from-background to-transparent" />
 
-      <h1 className="text-[28px] leading-tight tracking-tight sm:text-4xl md:text-5xl xl:text-7xl font-black text-foreground max-w-4xl text-balance mb-4 sm:mb-6 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100 uppercase">
-        {t.hero.title_line1}
-        <br />
-        <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-foreground to-emerald-400">{t.hero.title_line2}</span>
-      </h1>
+      <div className="mx-auto flex min-h-[calc(92svh-10rem)] max-w-7xl items-center">
+        <div className="max-w-3xl text-white">
+          <div className="mb-6 inline-flex items-center gap-2 border border-white/15 bg-white/10 px-3 py-2 text-[11px] font-black uppercase tracking-[0.28em] text-emerald-200 backdrop-blur-md">
+            <Rocket className="h-4 w-4" />
+            Egypt to remote income
+          </div>
 
-      <p className="max-w-[32ch] mx-auto text-sm leading-relaxed text-foreground/80 sm:text-base md:text-lg mb-10 text-pretty font-semibold opacity-80 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200">
-        {t.hero.subtitle}
-      </p>
+          <h1 className="max-w-4xl text-5xl font-black leading-[0.92] tracking-tight sm:text-6xl lg:text-8xl">
+            AI Backend Breakout Roadmap
+          </h1>
 
-      <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-4 sm:gap-6 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-300">
-        <Button
-          className="w-full sm:w-auto py-3 sm:py-9 px-8 sm:px-12 text-sm sm:text-xl font-semibold sm:font-black rounded-2xl sm:rounded-[2.5rem] bg-accent hover:bg-accent/90 text-accent-foreground uppercase tracking-widest transition-all hover:-translate-y-1 active:scale-95 border-none sm:shadow-[0_20px_60px_-15px_rgba(61,214,140,0.4)]"
-          onClick={() => {
-              if (isAuthenticated()) {
-                  router.push("/dashboard/bots");
-              } else {
-                  router.push("/signup");
-              }
-          }}
-        >
-          {t.hero.cta_primary}
-          <Rocket className="w-4 h-4 sm:w-6 sm:h-6 ml-3 group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
-        </Button>
-        <button 
-            onClick={() => {
-                if (isAuthenticated()) {
-                    router.push("/dashboard/market");
-                } else {
-                    router.push("/signup");
-                }
-            }}
-            className="w-full sm:w-auto py-3 sm:py-5 px-8 sm:px-10 text-sm font-semibold sm:font-black rounded-2xl sm:rounded-[2rem] bg-background/40 border border-white/10 sm:bg-card/40 sm:backdrop-blur-xl uppercase tracking-widest hover:bg-accent/5 transition-all active:scale-95"
-        >
-            {t.hero.cta_secondary}
-        </button>
+          <p className="mt-7 max-w-2xl text-base font-medium leading-8 text-white/78 sm:text-lg">
+            A focused path for becoming hireable fast: build real AI systems, wrap them in backend APIs,
+            publish clean proof, and aim for remote USD work before the market forgets your classmates exist.
+          </p>
+
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+            <Button
+              onClick={openBuilder}
+              className="h-14 rounded-lg bg-emerald-400 px-6 text-sm font-black uppercase tracking-[0.18em] text-zinc-950 hover:bg-emerald-300"
+            >
+              Start the build
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            <a
+              href="#roadmap"
+              className="inline-flex h-14 items-center justify-center rounded-lg border border-white/18 bg-white/10 px-6 text-sm font-black uppercase tracking-[0.18em] text-white backdrop-blur-md transition hover:bg-white/16"
+            >
+              See roadmap
+            </a>
+          </div>
+
+          <div className="mt-12 grid max-w-3xl grid-cols-1 border-y border-white/14 sm:grid-cols-3">
+            {proofStats.map((stat) => (
+              <div key={stat.label} className="border-white/14 py-5 sm:border-r sm:px-5 sm:last:border-r-0">
+                <div className="text-2xl font-black tracking-tight text-white">{stat.value}</div>
+                <div className="mt-1 text-[11px] font-bold uppercase tracking-[0.24em] text-white/54">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="mt-12 sm:mt-20 grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-center gap-x-12 gap-y-6 w-full max-w-xs sm:max-w-none text-center">
-           <div className="flex flex-col items-center">
-               <span className="text-xl sm:text-3xl font-semibold sm:font-black text-foreground tracking-tighter">2.4ms</span>
-               <span className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.3em]">{t.hero.stat_lat}</span>
-           </div>
-           <div className="w-px h-12 bg-border/40 hidden sm:block" />
-           <div className="flex flex-col items-center">
-               <span className="text-xl sm:text-3xl font-semibold sm:font-black text-foreground tracking-tighter">99.9%</span>
-               <span className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.3em]">{t.hero.stat_up}</span>
-           </div>
-           
-           <div className="col-span-2 sm:col-span-1 flex flex-col items-center border-t border-border/20 pt-4 sm:border-t-0 sm:pt-0">
-             <div className="w-px h-12 bg-border/40 hidden sm:block absolute -left-6" /> {/* Hacky divider replacement for flex, but keeping simple for grid */}
-               <span className="text-xl sm:text-3xl font-semibold sm:font-black text-foreground tracking-tighter">1.2M+</span>
-               <span className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.3em]">{t.hero.stat_sig}</span>
-           </div>
-      </div>
-
-      {/* Trust Badges */}
-      <div className="mt-16 sm:mt-24 flex items-center justify-center gap-12 opacity-30 grayscale hover:opacity-80 hover:grayscale-0 transition-all duration-500">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5" /> <span className="text-xs font-bold uppercase tracking-widest">Military Grade</span>
+      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-3 text-white sm:grid-cols-3">
+        {[
+          { icon: BrainCircuit, label: "AI + Deep Learning", text: "Models that solve visible problems" },
+          { icon: Globe2, label: "Backend + Cloud", text: "APIs, Docker, databases, deployment" },
+          { icon: Github, label: "Public Proof", text: "README, screenshots, demos, credibility" },
+        ].map((item) => (
+          <div key={item.label} className="flex items-center gap-4 border border-white/10 bg-black/24 p-4 backdrop-blur-md">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-300 text-zinc-950">
+              <item.icon className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-sm font-black uppercase tracking-[0.14em]">{item.label}</div>
+              <p className="mt-1 text-sm text-white/60">{item.text}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Globe className="w-5 h-5" /> <span className="text-xs font-bold uppercase tracking-widest">Global Node</span>
-          </div>
+        ))}
       </div>
     </section>
   );

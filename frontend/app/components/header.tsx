@@ -29,14 +29,33 @@ export function Header() {
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 h-16 flex items-center justify-between bg-background/80 backdrop-blur-xl border-b border-border/40 transition-all duration-300">
+    <header className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 h-16 flex items-center justify-between bg-background/78 backdrop-blur-xl border-b border-border/40 transition-all duration-300">
       {/* Logo */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center p-1.5 shadow-lg shadow-accent/20 transition-transform hover:scale-105 active:scale-95 text-background">
+      <Link href="/" className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center p-1.5 shadow-lg shadow-accent/20 transition-transform hover:scale-105 active:scale-95 text-background">
           <BrainCircuit className="w-full h-full" />
         </div>
-        <span className="font-black text-xl sm:text-2xl tracking-tighter uppercase text-foreground">Neural Flow</span>
-      </div>
+        <span className="font-black text-xl sm:text-2xl tracking-tighter uppercase text-foreground">
+          <span className="hidden sm:inline">Breakout OS</span>
+          <span className="sm:hidden">OS</span>
+        </span>
+      </Link>
+
+      <nav className="hidden items-center gap-6 lg:flex">
+        {[
+          { label: "Roadmap", href: "#roadmap" },
+          { label: "Projects", href: "#projects" },
+          { label: "Channels", href: "#channels" },
+        ].map((item) => (
+          <a
+            key={item.href}
+            href={item.href}
+            className="text-[11px] font-black uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {item.label}
+          </a>
+        ))}
+      </nav>
 
       {/* Right side */}
       <div className="flex items-center gap-4">
@@ -99,7 +118,7 @@ export function Header() {
                   router.push('/signup');
                 }
               }}
-              className="px-5 py-2 rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all"
+              className="px-5 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all"
             >
               {t.header.get_started}
             </button>

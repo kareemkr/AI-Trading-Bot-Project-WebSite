@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Rocket, Activity, LineChart, User, BrainCircuit } from "lucide-react";
+import { Rocket, Activity, LineChart, User, BrainCircuit, Github as GithubIcon } from "lucide-react";
 import { toast } from "sonner";
 import { ProfileModal } from "@/components/ui/profile-modal";
 import { ThemeToggle } from "@/components/dashboard/theme-toggle";
@@ -17,6 +17,37 @@ export function FloatingNav({ onOpenSubscription, isHomePage = false }: Floating
   const [activeItem, setActiveItem] = useState("Demo Bot");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { t } = useLanguage();
+
+  if (isHomePage) {
+    const homeItems = [
+      { name: "Roadmap", icon: Activity, href: "#roadmap" },
+      { name: "Projects", icon: GithubIcon, href: "#projects" },
+      { name: "Channels", icon: LineChart, href: "#channels" },
+    ];
+
+    return (
+      <nav className="fixed bottom-0 left-0 right-0 z-50 w-full sm:bottom-8 sm:left-1/2 sm:w-auto sm:max-w-[calc(100vw-2rem)] sm:-translate-x-1/2">
+        <div className="flex items-center justify-between gap-1.5 border-t border-white/5 bg-black/60 px-4 py-3 backdrop-blur-md sm:mx-auto sm:w-fit sm:justify-start sm:gap-3 sm:overflow-x-auto sm:rounded-lg sm:border sm:border-border/40 sm:bg-card/90 sm:px-3 sm:py-2.5 sm:shadow-2xl sm:shadow-black/10">
+          <div className="hidden h-11 w-11 items-center justify-center rounded-lg bg-black text-accent sm:flex">
+            <BrainCircuit className="h-6 w-6" />
+          </div>
+          {homeItems.map((item) => (
+            <a
+              key={item.name}
+              href={item.href}
+              className="flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-white/70 transition hover:bg-white/10 hover:text-white sm:flex-none sm:px-4"
+            >
+              <item.icon className="h-4 w-4 text-accent" />
+              <span className="hidden sm:block">{item.name}</span>
+            </a>
+          ))}
+          <div className="ml-1 border-l border-white/10 pl-2 sm:ml-2 sm:pl-3">
+            <ThemeToggle compact />
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   const navItems = [
     { name: t.nav.live_bot, icon: Rocket, href: "/dashboard/bots", requiresAuth: true, requiresPremium: true },

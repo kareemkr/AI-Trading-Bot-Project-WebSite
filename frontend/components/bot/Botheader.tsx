@@ -20,8 +20,8 @@ interface HeaderProps {
   autoTrading: boolean;
   onToggleAutoTrading: (enabled: boolean) => void;
   title?: string;
-  viewMode: 'assistant' | 'terminal';
-  onViewModeChange: (mode: 'assistant' | 'terminal') => void;
+  viewMode?: 'assistant' | 'terminal';
+  onViewModeChange?: (mode: 'assistant' | 'terminal') => void;
 }
 
 export function BotHeader({
@@ -30,8 +30,8 @@ export function BotHeader({
   autoTrading,
   onToggleAutoTrading,
   title,
-  viewMode,
-  onViewModeChange,
+  viewMode = 'assistant',
+  onViewModeChange = () => {},
 }: HeaderProps) {
   const [isDark, setIsDark] = useState(true);
   const [user, setUser] = useState<any>(null);
