@@ -8,7 +8,7 @@ The landing page turns a practical career plan into a high-signal web presence: 
 
 - Next.js frontend with Tailwind styling
 - AI/backend career roadmap landing page
-- Generated hero artwork saved at `frontend/public/breakout-hero.png`
+- Custom code-native hero visual for the roadmap first impression
 - Existing dashboard, auth, bot, market, and backend modules preserved
 - Fast anchor navigation for roadmap, projects, and income channels
 
